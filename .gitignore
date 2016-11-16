@@ -1,0 +1,14 @@
+.DS_Store
+
+Makefile
+CMakeCache.txt
+install_manifest.txt
+
+*.tcl
+*.cmake
+
+lib/
+bin/
+Testing/
+CMakeFiles/
+_CPack_Packages/
