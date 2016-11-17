@@ -1,10 +1,41 @@
 
+#include <string>
 #include <iostream>
 
 #include <boost/bind.hpp>
 
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
+
+#include <openssl/md5.h>
+
+std::string urlencode(const std::string &s)
+{
+	static const char lookup[]= "0123456789abcdef";
+
+	std::stringstream e;
+
+	for(int i = 0, len = s.length(); i < len; ++i)
+	{
+		const char& c = s[i];
+
+		if((48 <= c && c <= 57) || // 0-9
+			(65 <= c && c <= 90) || // a-z
+			(97 <= c && c <= 122) || // A-Z
+			(c == '-' || c == '_' || c == '.' || c == '~'))
+		{
+			e << c;
+		}
+		else
+		{
+			e << '%';
+			e << lookup[(c & 0xF0) >> 4];
+			e << lookup[(c & 0x0F)];
+		}
+	}
+
+	return e.str();
+}
 
 class client
 {
@@ -50,11 +81,34 @@ public:
 		{
 			std::ostream request_stream(&request_);
 
-			request_stream << "GET /api/v1/ticker.do?symbol=btc_cny HTTP/1.1\r\n";
+			std::string post_param = "api_key=91a440cb-d0c2-4dd6-924e-320d2a95a543";
+			std::string post_param_with_key = post_param + "&secret_key=8AF27D70C7D51568ADC74FA0CBF707F0";
+
+			unsigned char md5_result[MD5_DIGEST_LENGTH];
+			MD5((unsigned char*)post_param_with_key.c_str(), post_param_with_key.length(), md5_result);
+
+			char sign[MD5_DIGEST_LENGTH * 2 + 1];
+
+			for(int i = 0; i < MD5_DIGEST_LENGTH; ++i)
+			{
+				sprintf(sign + i * 2, "%02X", md5_result[i]);
+			}
+
+			// urlencode编译是参数值里面的特殊字符，而不是整个链接编译
+			// post_param = urlencode(post_param + "&sign=" + sign);
+
+			post_param = post_param + "&sign=" + sign;
+
+			request_stream << "POST /api/v1/userinfo.do HTTP/1.1\r\n";
 			request_stream << "Host: www.okcoin.cn\r\n";
-			request_stream << "Accept: */*\r\n";
+			request_stream << "Accept: */*\r\n";			
+			request_stream << "Content-Length: " << post_param.length() << "\r\n";
+			request_stream << "Content-Type: application/x-www-form-urlencoded" << "\r\n";
 			request_stream << "Connection: close\r\n";
 			request_stream << "\r\n";
+			request_stream << post_param;
+
+			// std::cout << &request_ << "\n";
 
 			boost::asio::async_write(socket_, request_,
 				boost::bind(&client::handle_write, this,
