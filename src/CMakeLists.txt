@@ -11,8 +11,13 @@ configure_file(
 )
 
 find_package(Boost COMPONENTS regex system thread)
+find_package(openssl)
 
 set(EXTRA_LIBS ${EXTRA_LIBS} ${Boost_REGEX_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY})
+set(EXTRA_LIBS ${EXTRA_LIBS} ${OPENSSL_LIBRARIES})
+
+include_directories($ENV{OPENSSL_ROOT_DIR}/include)
+link_directories($ENV{OPENSSL_ROOT_DIR}/lib)
 
 add_executable(TradeBot TradeBot.cpp)
 target_link_libraries(TradeBot ${EXTRA_LIBS})
