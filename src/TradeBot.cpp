@@ -8,6 +8,7 @@
 #include <boost/asio/ssl.hpp>
 
 #include <openssl/md5.h>
+#include <json/json.h>
 
 std::string urlencode(const std::string &s)
 {
@@ -57,7 +58,7 @@ public:
 		char subject_name[256];
 		X509* cert = X509_STORE_CTX_get_current_cert(context.native_handle());
 		X509_NAME_oneline(X509_get_subject_name(cert), subject_name, sizeof(subject_name));
-		std::cout << "Verifying " << subject_name << "\n";
+		// std::cout << "Verifying " << subject_name << "\n";
 
 		return preverified;
 	}
@@ -94,7 +95,7 @@ public:
 				sprintf(sign + i * 2, "%02X", md5_result[i]);
 			}
 
-			// urlencode编译是参数值里面的特殊字符，而不是整个链接编译
+			// urlencode编码的是参数值里面的特殊字符，而不是对整个链接编码，如果'&'和'='被编码，服务器将无法正确识别参数
 			// post_param = urlencode(post_param + "&sign=" + sign);
 
 			post_param = post_param + "&sign=" + sign;
@@ -167,25 +168,28 @@ public:
 
 			while(std::getline(response_stream, header) && header != "\r")
 			{
-				std::cout << header << "\n";
+				// std::cout << header << "\n";
 			}
-			std::cout << "\n";
+			// std::cout << "\n";
 
 			if(response_.size() > 0)
 			{
-				std::cout << &response_;
-			}
+				// std::cout << &response_;
 
-			boost::system::error_code ec;
+				Json::Value root;
+				Json::Reader reader;
 
-			while(boost::asio::read(socket_, response_, boost::asio::transfer_at_least(1), ec))
-			{
-				std::cout << &response_;
-			}
+				bool parse_ok = reader.parse(response_stream, root);
 
-			if(ec != boost::asio::error::eof)
-			{
-				throw boost::system::system_error(ec);
+				if(!parse_ok)
+				{
+					std::cout << "Parse failed\n";
+				}
+				else
+				{
+					double net = std::stod(root["info"]["funds"]["asset"]["net"].asString());
+					std::cout << "net: " << net << "\n";
+				}
 			}
 		}
 		else
