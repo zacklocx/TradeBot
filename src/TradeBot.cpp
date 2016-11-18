@@ -7,6 +7,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
+#include <boost/asio/steady_timer.hpp>
 
 #include <openssl/md5.h>
 #include <json/json.h>
@@ -87,19 +88,29 @@ class client
 public:
 	client(boost::asio::io_service& service,
 			boost::asio::ssl::context& context,
-			const std::string& host)
-			: socket_(service, context), host_(host)
+			const std::string& host,
+			int period) :
+			ready_(true),
+			socket_(service, context),
+			host_(host),
+			period_(period),
+			timer_(service, std::chrono::milliseconds(period))
 	{
 		init_info();
+
+		timer_.async_wait(boost::bind(&client::handle_timer, this, boost::asio::placeholders::error));
 
 		socket_.set_verify_mode(boost::asio::ssl::verify_peer);
 		socket_.set_verify_callback(boost::bind(&client::verify_certificate, this, _1, _2));
 
 		boost::asio::ip::tcp::resolver resolver(service);
 		boost::asio::ip::tcp::resolver::query query(host_, "https");
-		boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
+		endpoint_iterator_ = resolver.resolve(query);
+	}
 
-		boost::asio::async_connect(socket_.lowest_layer(), iterator,
+	void start_connect()
+	{
+		boost::asio::async_connect(socket_.lowest_layer(), endpoint_iterator_,
 			boost::bind(&client::handle_connect, this, boost::asio::placeholders::error));
 	}
 
@@ -111,6 +122,21 @@ public:
 		// std::cout << "Verifying " << subject_name << "\n";
 
 		return preverified;
+	}
+
+	void handle_timer(const boost::system::error_code& ec)
+	{
+		if(!ec)
+		{
+			if(ready_)
+			{
+				start_connect();
+				ready_ = false;
+			}
+
+			timer_.expires_at(timer_.expires_at() + std::chrono::milliseconds(period_));
+			timer_.async_wait(boost::bind(&client::handle_timer, this, boost::asio::placeholders::error));
+		}
 	}
 
 	void handle_connect(const boost::system::error_code& ec)
@@ -162,6 +188,8 @@ public:
 			{
 				dump_helper _("dump data");
 				dump_value(root);
+
+				ready_ = true;
 			}
 		}
 		else
@@ -244,7 +272,6 @@ public:
 
 		request_stream << "Content-Type: application/x-www-form-urlencoded" << "\r\n";
 		request_stream << "Connection: close\r\n\r\n";
-		// request_stream << "Connection: keep-alive\r\n\r\n";
 
 		if("POST" == formatted_method)
 		{
@@ -329,22 +356,28 @@ public:
 	{
 		std::map<std::string, std::string> param;
 
-		// {
-		// 	param["symbol"] = "btc_cny";
-		// 	send_request("get", "/api/v1/trades.do", param);
-		// }
-
 		{
-			send_request("post", "/api/v1/userinfo.do", param);
+			param["symbol"] = "btc_cny";
+			send_request("get", "/api/v1/trades.do", param);
 		}
+
+		// {
+		// 	send_request("post", "/api/v1/userinfo.do", param);
+		// }
 	}
 
 private:
+	bool ready_;
+
 	boost::asio::ssl::stream<boost::asio::ip::tcp::socket> socket_;
+	boost::asio::ip::tcp::resolver::iterator endpoint_iterator_;
 	boost::asio::streambuf request_;
 	boost::asio::streambuf response_;
 
 	std::string host_, api_key_, secret_key_;
+
+	int period_;
+	boost::asio::steady_timer timer_;
 };
 
 int main(int argc, char** argv)
@@ -357,8 +390,9 @@ int main(int argc, char** argv)
 		context.set_default_verify_paths();
 
 		std::string host = "www.okcoin.cn";
+		int period = 120;
 
-		client c(service, context, host);
+		client c(service, context, host, period);
 
 		service.run();
 	}
