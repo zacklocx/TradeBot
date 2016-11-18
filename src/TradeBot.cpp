@@ -1,5 +1,6 @@
 
 #include <string>
+#include <sstream>
 #include <iostream>
 
 #include <boost/bind.hpp>
@@ -10,11 +11,26 @@
 #include <openssl/md5.h>
 #include <json/json.h>
 
+std::string md5(const std::string &s)
+{
+	unsigned char digest[MD5_DIGEST_LENGTH];
+	MD5((unsigned char*)s.c_str(), s.length(), digest);
+
+	char result[MD5_DIGEST_LENGTH * 2 + 1];
+
+	for(int i = 0; i < MD5_DIGEST_LENGTH; ++i)
+	{
+		sprintf(result + i * 2, "%02X", digest[i]);
+	}
+
+	return result;
+}
+
 std::string urlencode(const std::string &s)
 {
-	static const char lookup[]= "0123456789abcdef";
+	const char lookup[]= "0123456789abcdef";
 
-	std::stringstream e;
+	std::ostringstream result;
 
 	for(int i = 0, len = s.length(); i < len; ++i)
 	{
@@ -25,31 +41,65 @@ std::string urlencode(const std::string &s)
 			(97 <= c && c <= 122) || // A-Z
 			(c == '-' || c == '_' || c == '.' || c == '~'))
 		{
-			e << c;
+			result << c;
 		}
 		else
 		{
-			e << '%';
-			e << lookup[(c & 0xF0) >> 4];
-			e << lookup[(c & 0x0F)];
+			result << '%';
+			result << lookup[(c & 0xF0) >> 4];
+			result << lookup[(c & 0x0F)];
 		}
 	}
 
-	return e.str();
+	return result.str();
 }
+
+void dump_param(const std::map<std::string, std::string>& m)
+{
+	for(const auto& it : m)
+	{
+		std::cout << it.first << " = " << it.second << "\n";
+	}
+}
+
+void dump_value(const Json::Value& v)
+{
+	std::cout << v.toStyledString() << "\n";
+}
+
+struct dump_helper
+{
+	std::string msg_;
+
+	dump_helper(const std::string& msg = "") : msg_(msg)
+	{
+		std::cout << "------------ " << msg_ << " begin ------------\n";
+	}
+
+	~dump_helper()
+	{
+		std::cout << "------------ " << msg_ << " end ------------\n\n";
+	}
+};
 
 class client
 {
 public:
 	client(boost::asio::io_service& service,
 			boost::asio::ssl::context& context,
-			boost::asio::ip::tcp::resolver::iterator endpoint)
-			: socket_(service, context)
+			const std::string& host)
+			: socket_(service, context), host_(host)
 	{
+		init_info();
+
 		socket_.set_verify_mode(boost::asio::ssl::verify_peer);
 		socket_.set_verify_callback(boost::bind(&client::verify_certificate, this, _1, _2));
 
-		boost::asio::async_connect(socket_.lowest_layer(), endpoint,
+		boost::asio::ip::tcp::resolver resolver(service);
+		boost::asio::ip::tcp::resolver::query query(host_, "https");
+		boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
+
+		boost::asio::async_connect(socket_.lowest_layer(), iterator,
 			boost::bind(&client::handle_connect, this, boost::asio::placeholders::error));
 	}
 
@@ -80,40 +130,7 @@ public:
 	{
 		if(!ec)
 		{
-			std::ostream request_stream(&request_);
-
-			std::string post_param = "api_key=91a440cb-d0c2-4dd6-924e-320d2a95a543";
-			std::string post_param_with_key = post_param + "&secret_key=8AF27D70C7D51568ADC74FA0CBF707F0";
-
-			unsigned char md5_result[MD5_DIGEST_LENGTH];
-			MD5((unsigned char*)post_param_with_key.c_str(), post_param_with_key.length(), md5_result);
-
-			char sign[MD5_DIGEST_LENGTH * 2 + 1];
-
-			for(int i = 0; i < MD5_DIGEST_LENGTH; ++i)
-			{
-				sprintf(sign + i * 2, "%02X", md5_result[i]);
-			}
-
-			// urlencode编码的是参数值里面的特殊字符，而不是对整个链接编码，如果'&'和'='被编码，服务器将无法正确识别参数
-			// post_param = urlencode(post_param + "&sign=" + sign);
-
-			post_param = post_param + "&sign=" + sign;
-
-			request_stream << "POST /api/v1/userinfo.do HTTP/1.1\r\n";
-			request_stream << "Host: www.okcoin.cn\r\n";
-			request_stream << "Accept: */*\r\n";			
-			request_stream << "Content-Length: " << post_param.length() << "\r\n";
-			request_stream << "Content-Type: application/x-www-form-urlencoded" << "\r\n";
-			request_stream << "Connection: close\r\n";
-			request_stream << "\r\n";
-			request_stream << post_param;
-
-			// std::cout << &request_ << "\n";
-
-			boost::asio::async_write(socket_, request_,
-				boost::bind(&client::handle_write, this,
-					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+			test_api();
 		}
 		else
 		{
@@ -139,57 +156,12 @@ public:
 	{
 		if(!ec)
 		{
-			std::istream response_stream(&response_);
+			Json::Value root;
 
-			std::string http_version;
-			response_stream >> http_version;
-
-			unsigned int status_code;
-			response_stream >> status_code;
-
-			std::string status_message;
-			std::getline(response_stream, status_message);
-
-			if(!response_stream || http_version.substr(0, 5) != "HTTP/")
+			if(parse_response(root))
 			{
-				std::cout << "Invalid response\n";
-				return;
-			}
-
-			if(status_code != 200)
-			{
-				std::cout << "Response returned with status code " << status_code << "\n";
-				return;
-			}
-
-			boost::asio::read_until(socket_, response_, "\r\n\r\n");
-
-			std::string header;
-
-			while(std::getline(response_stream, header) && header != "\r")
-			{
-				// std::cout << header << "\n";
-			}
-			// std::cout << "\n";
-
-			if(response_.size() > 0)
-			{
-				// std::cout << &response_;
-
-				Json::Value root;
-				Json::Reader reader;
-
-				bool parse_ok = reader.parse(response_stream, root);
-
-				if(!parse_ok)
-				{
-					std::cout << "Parse failed\n";
-				}
-				else
-				{
-					double net = std::stod(root["info"]["funds"]["asset"]["net"].asString());
-					std::cout << "net: " << net << "\n";
-				}
+				dump_helper _("dump data");
+				dump_value(root);
 			}
 		}
 		else
@@ -198,10 +170,181 @@ public:
 		}
 	}
 
+	void init_info()
+	{
+		api_key_ = "91a440cb-d0c2-4dd6-924e-320d2a95a543";
+		secret_key_ = "8AF27D70C7D51568ADC74FA0CBF707F0";
+	}
+
+	void send_request(const std::string& method,
+						const std::string& url,
+						std::map<std::string, std::string>& param)
+	{
+		std::string formatted_method(method);
+		std::transform(formatted_method.begin(), formatted_method.end(), formatted_method.begin(),
+			[](char c) { return std::toupper(c); });
+
+		std::cout << formatted_method << " " << url << "\n";
+
+		{
+			dump_helper _("dump param");
+			dump_param(param);
+		}
+
+		if(formatted_method != "GET" && formatted_method != "POST")
+		{
+			std::cout << "Unsupported method\n";
+			return;
+		}
+
+		std::string separator = "";
+
+		std::ostringstream param_stream;
+
+		if("POST" == formatted_method)
+		{
+			param_stream << "api_key=" << api_key_ << "&";
+		}
+
+		for(const auto& it : param)
+		{
+			param_stream << separator << it.first << "=" << it.second;
+			separator = "&";
+		}
+
+		if("POST" == formatted_method)
+		{
+			std::ostringstream param_with_key;
+			param_with_key << param_stream.str() << separator << "secret_key=" << secret_key_;
+
+			std::string sign = md5(param_with_key.str());
+
+			param_stream << separator << "sign=" << sign;
+		}
+
+		std::ostream request_stream(&request_);
+
+		if("GET" == formatted_method)
+		{
+			request_stream << formatted_method << " " << url << "?"
+				<< param_stream.str() << " HTTP/1.1\r\n";
+		}
+		else
+		{
+			request_stream << formatted_method << " " << url << " HTTP/1.1\r\n";
+		}
+
+		request_stream << "Host: " << host_ << "\r\n";
+		request_stream << "Accept: */*\r\n";
+
+		if("POST" == formatted_method)
+		{
+			request_stream << "Content-Length: " << param_stream.str().length() << "\r\n";
+		}
+
+		request_stream << "Content-Type: application/x-www-form-urlencoded" << "\r\n";
+		request_stream << "Connection: close\r\n\r\n";
+		// request_stream << "Connection: keep-alive\r\n\r\n";
+
+		if("POST" == formatted_method)
+		{
+			request_stream << param_stream.str();
+		}
+
+		// std::cout << &request_ << "\n";
+
+		boost::asio::async_write(socket_, request_,
+			boost::bind(&client::handle_write, this,
+				boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+	}
+
+	bool parse_response(Json::Value& root)
+	{
+		std::istream response_stream(&response_);
+
+		std::string http_version;
+		response_stream >> http_version;
+
+		unsigned int status_code;
+		response_stream >> status_code;
+
+		std::string status_message;
+		std::getline(response_stream, status_message);
+
+		if(!response_stream || http_version.substr(0, 5) != "HTTP/")
+		{
+			std::cout << "Invalid response\n";
+			return false;
+		}
+
+		if(status_code != 200)
+		{
+			std::cout << "Response returned with status code " << status_code << "\n";
+			return false;
+		}
+
+		boost::asio::read_until(socket_, response_, "\r\n\r\n");
+
+		std::string header;
+
+		while(std::getline(response_stream, header) && header != "\r")
+		{
+			// std::cout << header << "\n";
+		}
+		// std::cout << "\n";
+
+		if(0 == response_.size())
+		{
+			std::cout << "Empty response\n";
+			return false;
+		}
+
+		// std::cout << &response_;
+
+		boost::system::error_code ec;
+
+		while(boost::asio::read(socket_, response_, boost::asio::transfer_at_least(1), ec))
+		{
+			// std::cout << &response;
+		}
+
+		if(ec != boost::asio::error::eof && ec.message() != "short read")
+		{
+			throw boost::system::system_error(ec);
+			return false;
+		}
+
+		Json::Reader reader;
+
+		if(!reader.parse(response_stream, root))
+		{
+			std::cout << "Parse failed\n";
+			return false;
+		}
+
+		return true;
+	}
+
+	void test_api()
+	{
+		std::map<std::string, std::string> param;
+
+		// {
+		// 	param["symbol"] = "btc_cny";
+		// 	send_request("get", "/api/v1/trades.do", param);
+		// }
+
+		{
+			send_request("post", "/api/v1/userinfo.do", param);
+		}
+	}
+
 private:
 	boost::asio::ssl::stream<boost::asio::ip::tcp::socket> socket_;
 	boost::asio::streambuf request_;
 	boost::asio::streambuf response_;
+
+	std::string host_, api_key_, secret_key_;
 };
 
 int main(int argc, char** argv)
@@ -210,14 +353,12 @@ int main(int argc, char** argv)
 	{
 		boost::asio::io_service service;
 
-		boost::asio::ip::tcp::resolver resolver(service);
-		boost::asio::ip::tcp::resolver::query query("www.okcoin.cn", "https");
-		boost::asio::ip::tcp::resolver::iterator endpoint = resolver.resolve(query);
-
 		boost::asio::ssl::context context(boost::asio::ssl::context::sslv23);
 		context.set_default_verify_paths();
 
-		client c(service, context, endpoint);
+		std::string host = "www.okcoin.cn";
+
+		client c(service, context, host);
 
 		service.run();
 	}
