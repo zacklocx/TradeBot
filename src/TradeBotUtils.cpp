@@ -3,28 +3,31 @@
 
 #include <openssl/md5.h>
 
-extern std::ostream null_stream();
+std::time_t timestamp()
+{
+	return std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+}
 
 std::string md5(const std::string &s)
 {
 	unsigned char digest[MD5_DIGEST_LENGTH];
 	MD5((unsigned char*)s.c_str(), s.length(), digest);
 
-	char result[MD5_DIGEST_LENGTH * 2 + 1];
+	char ret[MD5_DIGEST_LENGTH * 2 + 1];
 
 	for(int i = 0; i < MD5_DIGEST_LENGTH; ++i)
 	{
-		sprintf(result + i * 2, "%02X", digest[i]);
+		sprintf(ret + i * 2, "%02X", digest[i]);
 	}
 
-	return result;
+	return ret;
 }
 
 std::string urlencode(const std::string &s)
 {
 	const char lookup[]= "0123456789abcdef";
 
-	std::ostringstream result;
+	std::ostringstream ret;
 
 	for(int i = 0, len = s.length(); i < len; ++i)
 	{
@@ -35,28 +38,15 @@ std::string urlencode(const std::string &s)
 			(97 <= c && c <= 122) || // A-Z
 			(c == '-' || c == '_' || c == '.' || c == '~'))
 		{
-			result << c;
+			ret << c;
 		}
 		else
 		{
-			result << '%';
-			result << lookup[(c & 0xF0) >> 4];
-			result << lookup[(c & 0x0F)];
+			ret << '%';
+			ret << lookup[(c & 0xF0) >> 4];
+			ret << lookup[(c & 0x0F)];
 		}
 	}
 
-	return result.str();
-}
-
-void dump_param(const std::map<std::string, std::string>& m)
-{
-	for(const auto& it : m)
-	{
-		std::cout << it.first << " = " << it.second << "\n";
-	}
-}
-
-void dump_value(const Json::Value& v)
-{
-	std::cout << v.toStyledString() << "\n";
+	return ret.str();
 }

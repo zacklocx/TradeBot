@@ -2,19 +2,14 @@
 #ifndef TRADE_BOT_UTILS
 #define TRADE_BOT_UTILS
 
-#include <map>
 #include <string>
 #include <sstream>
 #include <iomanip>
 #include <iostream>
 
-#include <json/json.h>
-
+std::time_t timestamp();
 std::string md5(const std::string &s);
 std::string urlencode(const std::string &s);
-
-void dump_param(const std::map<std::string, std::string>& m);
-void dump_value(const Json::Value& v);
 
 class dump_helper
 {
@@ -36,6 +31,7 @@ private:
 class line_logger
 {
 public:
+
 #ifdef TB_DEBUG
 	line_logger(std::ostream& out = std::cout, bool show_time = false) : out_(out), show_time_(show_time) {}
 #else
@@ -71,6 +67,7 @@ public:
 	}
 
 private:
+
 #ifdef TB_DEBUG
 	bool show_time_;
 	std::ostream& out_;

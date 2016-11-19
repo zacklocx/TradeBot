@@ -1,23 +1,54 @@
 
+#include <map>
+#include <queue>
+#include <string>
+#include <chrono>
+#include <utility>
+#include <sstream>
+#include <iostream>
+#include <algorithm>
+#include <initializer_list>
+
 #include <boost/bind.hpp>
 
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/asio/steady_timer.hpp>
 
+#include <json/json.h>
+
 #include "TradeBotConfig.h"
 #include "TradeBotUtils.h"
+
+void dump_json(const Json::Value& v)
+{
+	std::cout << v.toStyledString() << "\n";
+}
 
 std::string buffer_to_string(const boost::asio::streambuf& buf)
 {
 	using boost::asio::buffers_begin;
+
 	auto data = buf.data();
-	return std::string(buffers_begin(data), buffers_begin(data) + buf.size());
+	std::string ret(buffers_begin(data), buffers_begin(data) + buf.size());
+
+	return ret;
 }
 
 class client
 {
 public:
+	typedef std::map<std::string, std::string> param_type;
+
+	struct api
+	{
+		api(const std::string& name, const std::string& method, const param_type& param) :
+			name_(name), method_(method), param_(param) {}
+
+		std::string name_, method_;
+		param_type param_;
+	};
+
 	client(boost::asio::io_service& service,
 			boost::asio::ssl::context& context,
 			const std::string& host,
@@ -44,9 +75,12 @@ public:
 		api_key_ = "91a440cb-d0c2-4dd6-924e-320d2a95a543";
 		secret_key_ = "8AF27D70C7D51568ADC74FA0CBF707F0";
 
-		is_busy_ = will_halt_ = false;
-
+		is_busy_ = false;
 		round_ = 0;
+
+		init_queue();
+
+		will_halt_ = (0 == api_queue_.size());
 	}
 
 	void start_connect()
@@ -62,7 +96,6 @@ public:
 		X509_NAME_oneline(X509_get_subject_name(cert), subject_name, sizeof(subject_name));
 
 		LLOG() << "Verifying " << subject_name;
-		LLOG();
 
 		return preverified;
 	}
@@ -108,7 +141,7 @@ public:
 	{
 		if(!ec)
 		{
-			test_api();
+			execute_queue();
 		}
 		else
 		{
@@ -138,11 +171,14 @@ public:
 
 			if(parse_response(root))
 			{
-				dump_helper _("dump data");
-				dump_value(root);
+				dump_helper _(api_queue_.front().name_);
+				dump_json(root);
 
 				is_busy_ = false;
-				will_halt_ = true;
+
+				api_queue_.pop();
+
+				will_halt_ = (0 == api_queue_.size());
 			}
 		}
 		else
@@ -153,7 +189,7 @@ public:
 
 	void send_request(const std::string& method,
 						const std::string& url,
-						std::map<std::string, std::string>& param)
+						const param_type& param)
 	{
 		std::string formatted_method(method);
 		std::transform(formatted_method.begin(), formatted_method.end(), formatted_method.begin(),
@@ -219,7 +255,6 @@ public:
 		}
 
 		LLOG() << buffer_to_string(request_);
-		LLOG();
 
 		boost::asio::async_write(socket_, request_,
 			boost::bind(&client::handle_write, this,
@@ -267,7 +302,6 @@ public:
 		{
 			LLOG() << header;
 		}
-		LLOG();
 
 		if(0 == response_.size())
 		{
@@ -276,7 +310,6 @@ public:
 		}
 
 		LLOG() << buffer_to_string(response_);
-		LLOG();
 
 		Json::Reader reader;
 
@@ -289,17 +322,34 @@ public:
 		return true;
 	}
 
-	void test_api()
+	void push_api(const std::string& name, const std::string& method,
+		const std::initializer_list<std::pair<std::string const, std::string>>& param_list)
 	{
-		std::map<std::string, std::string> param;
+		api_queue_.push(api(name, method, param_type(param_list)));
+	}
 
-		// {
-		// 	param["symbol"] = "btc_cny";
-		// 	send_request("get", "/api/v1/trades.do", param);
-		// }
+	void call_api(const api& the_api)
+	{
+		send_request(the_api.method_, "/api/v1/" + the_api.name_ + ".do", the_api.param_);
+	}
 
+	void init_queue()
+	{
+		// api doc: https://www.okcoin.cn/about/rest_getStarted.do
+
+		push_api("userinfo", "post", {});
+		push_api("order_info", "post", {{"symbol", "btc_cny"}, {"order_id", "-1"}});
+		push_api("kline", "get", {{"symbol", "btc_cny"}, {"type", "1min"}, {"size", "100"}});
+		push_api("depth", "get", {{"symbol", "btc_cny"}, {"size", "200"}, {"merge", "0"}});
+		push_api("trades", "get", {{"symbol", "btc_cny"}});
+		push_api("ticker", "get", {{"symbol", "btc_cny"}});
+	}
+
+	void execute_queue()
+	{
+		if(api_queue_.size() > 0)
 		{
-			send_request("post", "/api/v1/userinfo.do", param);
+			call_api(api_queue_.front());
 		}
 	}
 
@@ -316,6 +366,8 @@ private:
 	int period_;
 	unsigned long round_;
 	boost::asio::steady_timer timer_;
+
+	std::queue<api> api_queue_;
 };
 
 int main(int argc, char** argv)
@@ -328,9 +380,9 @@ int main(int argc, char** argv)
 		context.set_default_verify_paths();
 
 		std::string host = "www.okcoin.cn";
-		int period = 120;
+		int period = 100;
 
-		client c(service, context, host, period);
+		client the_client(service, context, host, period);
 
 		service.run();
 	}
