@@ -61,8 +61,8 @@ public:
 		X509* cert = X509_STORE_CTX_get_current_cert(context.native_handle());
 		X509_NAME_oneline(X509_get_subject_name(cert), subject_name, sizeof(subject_name));
 
-		LLOG << "Verifying " << subject_name;
-		LLOG;
+		LLOG() << "Verifying " << subject_name;
+		LLOG();
 
 		return preverified;
 	}
@@ -85,6 +85,10 @@ public:
 				timer_.async_wait(boost::bind(&client::handle_timer, this, boost::asio::placeholders::error));
 			}
 		}
+		else
+		{
+			LLOG(std::cerr) << "Timer error: " << ec.message();
+		}
 	}
 
 	void handle_connect(const boost::system::error_code& ec)
@@ -96,7 +100,7 @@ public:
 		}
 		else
 		{
-			line_logger(std::cerr) << "Connect failed: " << ec.message();
+			LLOG(std::cerr) << "Connect failed: " << ec.message();
 		}
 	}
 
@@ -108,7 +112,7 @@ public:
 		}
 		else
 		{
-			line_logger(std::cerr) << "Handshake failed: " << ec.message();
+			LLOG(std::cerr) << "Handshake failed: " << ec.message();
 		}
 	}
 
@@ -122,7 +126,7 @@ public:
 		}
 		else
 		{
-			line_logger(std::cerr) << "Write failed: " << ec.message();
+			LLOG(std::cerr) << "Write failed: " << ec.message();
 		}
 	}
 
@@ -143,7 +147,7 @@ public:
 		}
 		else
 		{
-			line_logger(std::cerr) << "Read failed: " << ec.message();
+			LLOG(std::cerr) << "Read failed: " << ec.message();
 		}
 	}
 
@@ -157,7 +161,7 @@ public:
 
 		if(formatted_method != "GET" && formatted_method != "POST")
 		{
-			line_logger(std::cerr) << "Unsupported method";
+			LLOG(std::cerr) << "Unsupported method";
 			return;
 		}
 
@@ -214,8 +218,8 @@ public:
 			request_stream << param_stream.str();
 		}
 
-		LLOG << buffer_to_string(request_);
-		LLOG;
+		LLOG() << buffer_to_string(request_);
+		LLOG();
 
 		boost::asio::async_write(socket_, request_,
 			boost::bind(&client::handle_write, this,
@@ -237,13 +241,13 @@ public:
 
 		if(!response_stream || http_version.substr(0, 5) != "HTTP/")
 		{
-			line_logger(std::cerr) << "Invalid response";
+			LLOG(std::cerr) << "Invalid response";
 			return false;
 		}
 
 		if(status_code != 200)
 		{
-			line_logger(std::cerr) << "Response returned with status code " << status_code;
+			LLOG(std::cerr) << "Response returned with status code " << status_code;
 			return false;
 		}
 
@@ -261,24 +265,24 @@ public:
 
 		while(std::getline(response_stream, header) && header != "\r")
 		{
-			LLOG << header;
+			LLOG() << header;
 		}
-		LLOG;
+		LLOG();
 
 		if(0 == response_.size())
 		{
-			line_logger(std::cerr) << "Empty response";
+			LLOG(std::cerr) << "Empty response";
 			return false;
 		}
 
-		LLOG << buffer_to_string(response_);
-		LLOG;
+		LLOG() << buffer_to_string(response_);
+		LLOG();
 
 		Json::Reader reader;
 
 		if(!reader.parse(response_stream, root))
 		{
-			line_logger(std::cerr) << "Parse failed";
+			LLOG(std::cerr) << "Parse failed";
 			return false;
 		}
 
@@ -332,7 +336,7 @@ int main(int argc, char** argv)
 	}
 	catch(std::exception& e)
 	{
-		line_logger(std::cerr) << "Exception: " << e.what();
+		LLOG(std::cerr) << "Exception: " << e.what();
 	}
 
 	return 0;

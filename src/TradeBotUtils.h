@@ -78,6 +78,6 @@ private:
 #endif
 };
 
-#define LLOG line_logger()
+#define LLOG line_logger
 
 #endif // TRADE_BOT_UTILS
