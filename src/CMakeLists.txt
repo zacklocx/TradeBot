@@ -21,5 +21,7 @@ set(EXTRA_LIBS ${EXTRA_LIBS} ${JSONCPP_LIBRARIES})
 include_directories($ENV{OPENSSL_ROOT_DIR}/include)
 link_directories($ENV{OPENSSL_ROOT_DIR}/lib)
 
-add_executable(TradeBot TradeBot.cpp)
+file(GLOB ALL_CPP *.cpp)
+
+add_executable(TradeBot ${ALL_CPP})
 target_link_libraries(TradeBot ${EXTRA_LIBS})

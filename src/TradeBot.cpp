@@ -1,87 +1,19 @@
 
-#include <string>
-#include <sstream>
-#include <iostream>
-
 #include <boost/bind.hpp>
 
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/asio/steady_timer.hpp>
 
-#include <openssl/md5.h>
-#include <json/json.h>
+#include "TradeBotConfig.h"
+#include "TradeBotUtils.h"
 
-std::string md5(const std::string &s)
+std::string buffer_to_string(const boost::asio::streambuf& buf)
 {
-	unsigned char digest[MD5_DIGEST_LENGTH];
-	MD5((unsigned char*)s.c_str(), s.length(), digest);
-
-	char result[MD5_DIGEST_LENGTH * 2 + 1];
-
-	for(int i = 0; i < MD5_DIGEST_LENGTH; ++i)
-	{
-		sprintf(result + i * 2, "%02X", digest[i]);
-	}
-
-	return result;
+	using boost::asio::buffers_begin;
+	auto data = buf.data();
+	return std::string(buffers_begin(data), buffers_begin(data) + buf.size());
 }
-
-std::string urlencode(const std::string &s)
-{
-	const char lookup[]= "0123456789abcdef";
-
-	std::ostringstream result;
-
-	for(int i = 0, len = s.length(); i < len; ++i)
-	{
-		const char& c = s[i];
-
-		if((48 <= c && c <= 57) || // 0-9
-			(65 <= c && c <= 90) || // a-z
-			(97 <= c && c <= 122) || // A-Z
-			(c == '-' || c == '_' || c == '.' || c == '~'))
-		{
-			result << c;
-		}
-		else
-		{
-			result << '%';
-			result << lookup[(c & 0xF0) >> 4];
-			result << lookup[(c & 0x0F)];
-		}
-	}
-
-	return result.str();
-}
-
-void dump_param(const std::map<std::string, std::string>& m)
-{
-	for(const auto& it : m)
-	{
-		std::cout << it.first << " = " << it.second << "\n";
-	}
-}
-
-void dump_value(const Json::Value& v)
-{
-	std::cout << v.toStyledString() << "\n";
-}
-
-struct dump_helper
-{
-	std::string msg_;
-
-	dump_helper(const std::string& msg = "") : msg_(msg)
-	{
-		std::cout << "------------ " << msg_ << " begin ------------\n";
-	}
-
-	~dump_helper()
-	{
-		std::cout << "------------ " << msg_ << " end ------------\n\n";
-	}
-};
 
 class client
 {
@@ -90,13 +22,12 @@ public:
 			boost::asio::ssl::context& context,
 			const std::string& host,
 			int period) :
-			ready_(true),
 			socket_(service, context),
 			host_(host),
 			period_(period),
 			timer_(service, std::chrono::milliseconds(period))
 	{
-		init_info();
+		init();
 
 		timer_.async_wait(boost::bind(&client::handle_timer, this, boost::asio::placeholders::error));
 
@@ -106,6 +37,16 @@ public:
 		boost::asio::ip::tcp::resolver resolver(service);
 		boost::asio::ip::tcp::resolver::query query(host_, "https");
 		endpoint_iterator_ = resolver.resolve(query);
+	}
+
+	void init()
+	{
+		api_key_ = "91a440cb-d0c2-4dd6-924e-320d2a95a543";
+		secret_key_ = "8AF27D70C7D51568ADC74FA0CBF707F0";
+
+		is_busy_ = will_halt_ = false;
+
+		round_ = 0;
 	}
 
 	void start_connect()
@@ -119,7 +60,9 @@ public:
 		char subject_name[256];
 		X509* cert = X509_STORE_CTX_get_current_cert(context.native_handle());
 		X509_NAME_oneline(X509_get_subject_name(cert), subject_name, sizeof(subject_name));
-		// std::cout << "Verifying " << subject_name << "\n";
+
+		line_logger() << "Verifying " << subject_name;
+		line_logger();
 
 		return preverified;
 	}
@@ -128,14 +71,19 @@ public:
 	{
 		if(!ec)
 		{
-			if(ready_)
+			if(!will_halt_)
 			{
-				start_connect();
-				ready_ = false;
-			}
+				if(!is_busy_)
+				{
+					is_busy_ = true;
+					++round_;
 
-			timer_.expires_at(timer_.expires_at() + std::chrono::milliseconds(period_));
-			timer_.async_wait(boost::bind(&client::handle_timer, this, boost::asio::placeholders::error));
+					start_connect();
+				}
+
+				timer_.expires_at(timer_.expires_at() + std::chrono::milliseconds(period_));
+				timer_.async_wait(boost::bind(&client::handle_timer, this, boost::asio::placeholders::error));
+			}
 		}
 	}
 
@@ -148,7 +96,7 @@ public:
 		}
 		else
 		{
-			std::cout << "Connect failed: " << ec.message() << "\n";
+			line_logger(std::cerr) << "Connect failed: " << ec.message();
 		}
 	}
 
@@ -160,7 +108,7 @@ public:
 		}
 		else
 		{
-			std::cout << "Handshake failed: " << ec.message() << "\n";
+			line_logger(std::cerr) << "Handshake failed: " << ec.message();
 		}
 	}
 
@@ -174,7 +122,7 @@ public:
 		}
 		else
 		{
-			std::cout << "Write failed: " << ec.message() << "\n";
+			line_logger(std::cerr) << "Write failed: " << ec.message();
 		}
 	}
 
@@ -189,19 +137,14 @@ public:
 				dump_helper _("dump data");
 				dump_value(root);
 
-				ready_ = true;
+				is_busy_ = false;
+				will_halt_ = true;
 			}
 		}
 		else
 		{
-			std::cout << "Read failed: " << ec.message() << "\n";
+			line_logger(std::cerr) << "Read failed: " << ec.message();
 		}
-	}
-
-	void init_info()
-	{
-		api_key_ = "91a440cb-d0c2-4dd6-924e-320d2a95a543";
-		secret_key_ = "8AF27D70C7D51568ADC74FA0CBF707F0";
 	}
 
 	void send_request(const std::string& method,
@@ -212,16 +155,9 @@ public:
 		std::transform(formatted_method.begin(), formatted_method.end(), formatted_method.begin(),
 			[](char c) { return std::toupper(c); });
 
-		std::cout << formatted_method << " " << url << "\n";
-
-		{
-			dump_helper _("dump param");
-			dump_param(param);
-		}
-
 		if(formatted_method != "GET" && formatted_method != "POST")
 		{
-			std::cout << "Unsupported method\n";
+			line_logger(std::cerr) << "Unsupported method";
 			return;
 		}
 
@@ -278,7 +214,8 @@ public:
 			request_stream << param_stream.str();
 		}
 
-		// std::cout << &request_ << "\n";
+		line_logger() << buffer_to_string(request_);
+		line_logger();
 
 		boost::asio::async_write(socket_, request_,
 			boost::bind(&client::handle_write, this,
@@ -300,40 +237,19 @@ public:
 
 		if(!response_stream || http_version.substr(0, 5) != "HTTP/")
 		{
-			std::cout << "Invalid response\n";
+			line_logger(std::cerr) << "Invalid response";
 			return false;
 		}
 
 		if(status_code != 200)
 		{
-			std::cout << "Response returned with status code " << status_code << "\n";
+			line_logger(std::cerr) << "Response returned with status code " << status_code;
 			return false;
 		}
-
-		boost::asio::read_until(socket_, response_, "\r\n\r\n");
-
-		std::string header;
-
-		while(std::getline(response_stream, header) && header != "\r")
-		{
-			// std::cout << header << "\n";
-		}
-		// std::cout << "\n";
-
-		if(0 == response_.size())
-		{
-			std::cout << "Empty response\n";
-			return false;
-		}
-
-		// std::cout << &response_;
 
 		boost::system::error_code ec;
 
-		while(boost::asio::read(socket_, response_, boost::asio::transfer_at_least(1), ec))
-		{
-			// std::cout << &response;
-		}
+		while(boost::asio::read(socket_, response_, boost::asio::transfer_at_least(1), ec)) {}
 
 		if(ec != boost::asio::error::eof && ec.message() != "short read")
 		{
@@ -341,11 +257,28 @@ public:
 			return false;
 		}
 
+		std::string header;
+
+		while(std::getline(response_stream, header) && header != "\r")
+		{
+			line_logger() << header;
+		}
+		line_logger();
+
+		if(0 == response_.size())
+		{
+			line_logger(std::cerr) << "Empty response";
+			return false;
+		}
+
+		line_logger() << buffer_to_string(response_);
+		line_logger();
+
 		Json::Reader reader;
 
 		if(!reader.parse(response_stream, root))
 		{
-			std::cout << "Parse failed\n";
+			line_logger(std::cerr) << "Parse failed";
 			return false;
 		}
 
@@ -356,19 +289,17 @@ public:
 	{
 		std::map<std::string, std::string> param;
 
-		{
-			param["symbol"] = "btc_cny";
-			send_request("get", "/api/v1/trades.do", param);
-		}
-
 		// {
-		// 	send_request("post", "/api/v1/userinfo.do", param);
+		// 	param["symbol"] = "btc_cny";
+		// 	send_request("get", "/api/v1/trades.do", param);
 		// }
+
+		{
+			send_request("post", "/api/v1/userinfo.do", param);
+		}
 	}
 
 private:
-	bool ready_;
-
 	boost::asio::ssl::stream<boost::asio::ip::tcp::socket> socket_;
 	boost::asio::ip::tcp::resolver::iterator endpoint_iterator_;
 	boost::asio::streambuf request_;
@@ -376,7 +307,10 @@ private:
 
 	std::string host_, api_key_, secret_key_;
 
+	bool is_busy_, will_halt_;
+
 	int period_;
+	unsigned long round_;
 	boost::asio::steady_timer timer_;
 };
 
@@ -398,7 +332,7 @@ int main(int argc, char** argv)
 	}
 	catch(std::exception& e)
 	{
-		std::cerr << "Exception: " << e.what() << "\n";
+		line_logger(std::cerr) << "Exception: " << e.what();
 	}
 
 	return 0;
