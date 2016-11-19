@@ -3,7 +3,7 @@ project(TradeBot)
 set(TB_VERSION_MAJOR 1)
 set(TB_VERSION_MINOR 0)
 
-set(TB_DEBUG 1)
+set(TB_DEBUG 0)
 
 configure_file(
 	"${PROJECT_BINARY_DIR}/TradeBotConfig.h.in"

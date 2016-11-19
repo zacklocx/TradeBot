@@ -40,6 +40,7 @@ public:
 
 	~line_logger()
 	{
+#ifdef TB_DEBUG
 		stream_ << "\n";
 
 		if(show_time_)
@@ -52,12 +53,16 @@ public:
 
 		out_ << stream_.rdbuf();
 		out_.flush();
+#endif
 	}
 
 	template<class T>
 	line_logger& operator <<(const T& value)
 	{
+#ifdef TB_DEBUG
 		stream_ << value;
+#endif
+
 		return *this;
 	}
 
