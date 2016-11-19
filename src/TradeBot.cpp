@@ -75,12 +75,12 @@ public:
 		api_key_ = "91a440cb-d0c2-4dd6-924e-320d2a95a543";
 		secret_key_ = "8AF27D70C7D51568ADC74FA0CBF707F0";
 
-		is_busy_ = false;
-		round_ = 0;
-
 		init_queue();
 
+		is_busy_ = false;
 		will_halt_ = (0 == api_queue_.size());
+
+		round_ = 0;
 	}
 
 	void start_connect()
@@ -171,13 +171,14 @@ public:
 
 			if(parse_response(root))
 			{
-				dump_helper _(api_queue_.front().name_);
-				dump_json(root);
+				std::string api_name = api_queue_.front().name_;
 
-				is_busy_ = false;
+				dump_helper _(api_name);
+				dump_json(root);
 
 				api_queue_.pop();
 
+				is_busy_ = false;
 				will_halt_ = (0 == api_queue_.size());
 			}
 		}
@@ -187,11 +188,11 @@ public:
 		}
 	}
 
-	void send_request(const std::string& method,
-						const std::string& url,
+	void send_request(const std::string& url,
+						const std::string& method,
 						const param_type& param)
 	{
-		std::string formatted_method(method);
+		std::string formatted_method = method;
 		std::transform(formatted_method.begin(), formatted_method.end(), formatted_method.begin(),
 			[](char c) { return std::toupper(c); });
 
@@ -330,7 +331,7 @@ public:
 
 	void call_api(const api& the_api)
 	{
-		send_request(the_api.method_, "/api/v1/" + the_api.name_ + ".do", the_api.param_);
+		send_request("/api/v1/" + the_api.name_ + ".do", the_api.method_, the_api.param_);
 	}
 
 	void init_queue()
@@ -380,7 +381,7 @@ int main(int argc, char** argv)
 		context.set_default_verify_paths();
 
 		std::string host = "www.okcoin.cn";
-		int period = 100;
+		int period = 110;
 
 		client the_client(service, context, host, period);
 
