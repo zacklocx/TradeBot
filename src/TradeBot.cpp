@@ -61,8 +61,8 @@ public:
 		X509* cert = X509_STORE_CTX_get_current_cert(context.native_handle());
 		X509_NAME_oneline(X509_get_subject_name(cert), subject_name, sizeof(subject_name));
 
-		line_logger() << "Verifying " << subject_name;
-		line_logger();
+		LLOG << "Verifying " << subject_name;
+		LLOG;
 
 		return preverified;
 	}
@@ -214,8 +214,8 @@ public:
 			request_stream << param_stream.str();
 		}
 
-		line_logger() << buffer_to_string(request_);
-		line_logger();
+		LLOG << buffer_to_string(request_);
+		LLOG;
 
 		boost::asio::async_write(socket_, request_,
 			boost::bind(&client::handle_write, this,
@@ -261,9 +261,9 @@ public:
 
 		while(std::getline(response_stream, header) && header != "\r")
 		{
-			line_logger() << header;
+			LLOG << header;
 		}
-		line_logger();
+		LLOG;
 
 		if(0 == response_.size())
 		{
@@ -271,8 +271,8 @@ public:
 			return false;
 		}
 
-		line_logger() << buffer_to_string(response_);
-		line_logger();
+		LLOG << buffer_to_string(response_);
+		LLOG;
 
 		Json::Reader reader;
 

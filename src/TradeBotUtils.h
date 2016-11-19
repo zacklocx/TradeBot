@@ -36,7 +36,11 @@ private:
 class line_logger
 {
 public:
+#ifdef TB_DEBUG
 	line_logger(std::ostream& out = std::cout, bool show_time = false) : out_(out), show_time_(show_time) {}
+#else
+	line_logger(std::ostream& out = std::cout, bool show_time = false) {}
+#endif
 
 	~line_logger()
 	{
@@ -67,9 +71,13 @@ public:
 	}
 
 private:
+#ifdef TB_DEBUG
 	bool show_time_;
 	std::ostream& out_;
 	std::stringstream stream_;
+#endif
 };
+
+#define LLOG line_logger()
 
 #endif // TRADE_BOT_UTILS
