@@ -4,6 +4,7 @@
 #include <string>
 #include <chrono>
 #include <utility>
+#include <fstream>
 #include <sstream>
 #include <iostream>
 #include <algorithm>
@@ -38,27 +39,74 @@ std::string buffer_to_string(const boost::asio::streambuf& buf)
 class client
 {
 public:
+	static int s_no;
+
 	typedef std::map<std::string, std::string> param_type;
 
 	struct api
 	{
 		api(const std::string& name, const std::string& method, const param_type& param) :
-			name_(name), method_(method), param_(param) {}
+			name_(name), method_(method), param_(param)
+		{}
 
 		std::string name_, method_;
 		param_type param_;
+	};
+
+	class order
+	{
+	public:
+		order(const std::string& id = "-1",
+			const std::string& type = "",
+			const std::string& status = "",
+			const std::string& price = "0",
+			const std::string& amount = "0",
+			const std::string& avg_price = "0",
+			const std::string& deal_amount = "0") :
+			id_(id), type_(type), status_(status),
+			price_(price), amount_(amount),
+			avg_price_(avg_price), deal_amount_(deal_amount)
+		{}
+
+		std::string id() const { return id_; }
+
+		bool valid() const { return std::stoi(id_) > 0; }
+
+		bool buy_type() const { return "buy_market" == type_; }
+		bool sell_type() const { return "sell_market" == type_; }
+
+		bool no_deal() const { return "0" == status_; }
+		bool part_deal() const { return "1" == status_; }
+		bool full_deal() const { return "2" == status_; }
+
+		bool canceling() const { return "4" == status_; }
+		bool canceled() const { return "-1" == status_; }
+
+		std::string price() const { return price_; }
+		std::string amount() const { return amount_; }
+
+		std::string avg_price() const { return avg_price_; }
+		std::string deal_amount() const { return deal_amount_; }
+
+	private:
+		std::string id_, type_, status_;
+		std::string price_, amount_, avg_price_, deal_amount_;
 	};
 
 	client(boost::asio::io_service& service,
 			boost::asio::ssl::context& context,
 			const std::string& host,
 			int period) :
+			no_(client::s_no++),
+			log_(std::to_string(timestamp()) + ".log"),
 			socket_(service, context),
 			host_(host),
 			period_(period),
 			timer_(service, std::chrono::milliseconds(period))
 	{
 		init();
+		init_sim();
+		init_real();
 
 		timer_.async_wait(boost::bind(&client::handle_timer, this, boost::asio::placeholders::error));
 
@@ -78,9 +126,30 @@ public:
 		init_queue();
 
 		is_busy_ = false;
+		will_buy_ = will_sell_ = false;
 		will_halt_ = (0 == api_queue_.size());
 
 		round_ = 0;
+
+		buy_idle_round_ = 0;
+		max_buy_idle_round_ = 100;
+
+		sell_idle_round_ = 0;
+		max_sell_idle_round_ = 100;
+	}
+
+	void init_sim()
+	{
+		sim_money = sim_origin_money = 10000.0;
+		sim_btc = sim_origin_btc = 0.0;
+		sim_buy_price = sim_sell_price = -1.0;
+	}
+
+	void init_real()
+	{
+		real_money = real_origin_money = 10000.0;
+		real_btc = real_origin_btc = 0.0;
+		real_buy_price = real_sell_price = -1.0;
 	}
 
 	void start_connect()
@@ -167,16 +236,18 @@ public:
 	{
 		if(!ec)
 		{
-			Json::Value root;
+			Json::Value data;
 
-			if(parse_response(root))
+			if(parse_response(data))
 			{
-				std::string api_name = api_queue_.front().name_;
+				std::string name = api_queue_.front().name_;
 
-				dump_helper _(api_name);
-				dump_json(root);
+				// dump_helper _(name);
+				// dump_json(data);
 
 				api_queue_.pop();
+
+				analyze(name, data);
 
 				is_busy_ = false;
 				will_halt_ = (0 == api_queue_.size());
@@ -192,11 +263,11 @@ public:
 						const std::string& method,
 						const param_type& param)
 	{
-		std::string formatted_method = method;
-		std::transform(formatted_method.begin(), formatted_method.end(), formatted_method.begin(),
+		std::string the_method = method;
+		std::transform(the_method.begin(), the_method.end(), the_method.begin(),
 			[](char c) { return std::toupper(c); });
 
-		if(formatted_method != "GET" && formatted_method != "POST")
+		if(the_method != "GET" && the_method != "POST")
 		{
 			LLOG(std::cerr) << "Unsupported method";
 			return;
@@ -206,7 +277,7 @@ public:
 
 		std::ostringstream param_stream;
 
-		if("POST" == formatted_method)
+		if("POST" == the_method)
 		{
 			param_stream << "api_key=" << api_key_ << "&";
 		}
@@ -217,7 +288,7 @@ public:
 			separator = "&";
 		}
 
-		if("POST" == formatted_method)
+		if("POST" == the_method)
 		{
 			std::ostringstream param_with_key;
 			param_with_key << param_stream.str() << separator << "secret_key=" << secret_key_;
@@ -229,20 +300,20 @@ public:
 
 		std::ostream request_stream(&request_);
 
-		if("GET" == formatted_method)
+		if("GET" == the_method)
 		{
-			request_stream << formatted_method << " " << url << "?"
+			request_stream << the_method << " " << url << "?"
 				<< param_stream.str() << " HTTP/1.1\r\n";
 		}
 		else
 		{
-			request_stream << formatted_method << " " << url << " HTTP/1.1\r\n";
+			request_stream << the_method << " " << url << " HTTP/1.1\r\n";
 		}
 
 		request_stream << "Host: " << host_ << "\r\n";
 		request_stream << "Accept: */*\r\n";
 
-		if("POST" == formatted_method)
+		if("POST" == the_method)
 		{
 			request_stream << "Content-Length: " << param_stream.str().length() << "\r\n";
 		}
@@ -250,7 +321,7 @@ public:
 		request_stream << "Content-Type: application/x-www-form-urlencoded" << "\r\n";
 		request_stream << "Connection: close\r\n\r\n";
 
-		if("POST" == formatted_method)
+		if("POST" == the_method)
 		{
 			request_stream << param_stream.str();
 		}
@@ -340,10 +411,10 @@ public:
 
 		push_api("userinfo", "post", {});
 		push_api("order_info", "post", {{"symbol", "btc_cny"}, {"order_id", "-1"}});
-		push_api("kline", "get", {{"symbol", "btc_cny"}, {"type", "1min"}, {"size", "100"}});
-		push_api("depth", "get", {{"symbol", "btc_cny"}, {"size", "200"}, {"merge", "0"}});
-		push_api("trades", "get", {{"symbol", "btc_cny"}});
-		push_api("ticker", "get", {{"symbol", "btc_cny"}});
+		// push_api("kline", "get", {{"symbol", "btc_cny"}, {"type", "1min"}, {"size", "100"}});
+		// push_api("depth", "get", {{"symbol", "btc_cny"}, {"size", "200"}, {"merge", "0"}});
+		// push_api("trades", "get", {{"symbol", "btc_cny"}});
+		// push_api("ticker", "get", {{"symbol", "btc_cny"}});
 	}
 
 	void execute_queue()
@@ -354,7 +425,225 @@ public:
 		}
 	}
 
+	void analyze(const std::string& name, const Json::Value& data)
+	{
+		if("order_info" == name)
+		{
+			if("false" == data["result"].asString())
+			{
+				push_api("order_info", "post", {{"symbol", "btc_cny"}, {"order_id", curr_order_.id()}});
+				return;
+			}
+
+			const Json::Value& orders = data["orders"];
+
+			for(const auto& it : orders)
+			{
+				order the_order(it["order_id"].asString(), it["type"].asString(), it["status"].asString(),
+								it["price"].asString(), it["amount"].asString(),
+								it["avg_price"].asString(), it["deal_amount"].asString());
+
+				if(curr_order_.valid())
+				{
+					if(the_order.id() == curr_order_.id())
+					{
+						curr_order_ = the_order;
+
+						if(curr_order_.full_deal())
+						{
+							if(curr_order_.buy_type())
+							{
+								log_ << curr_order_.id() << " buy "
+									<< curr_order_.avg_price() << " " << curr_order_.deal_amount() << "\n";
+
+								will_sell_ = true;
+								push_api("depth", "get", {{"symbol", "btc_cny"}, {"size", "200"}, {"merge", "0"}});
+							}
+							else if(curr_order_.sell_type())
+							{
+								log_ << curr_order_.id() << " sell "
+									<< curr_order_.avg_price() << " " << curr_order_.deal_amount() << "\n";
+
+								will_buy_ = true;
+								push_api("depth", "get", {{"symbol", "btc_cny"}, {"size", "200"}, {"merge", "0"}});
+							}
+						}
+
+						break;
+					}
+				}
+				else
+				{
+					if(the_order.no_deal() || the_order.part_deal())
+					{
+						curr_order_ = the_order;
+						break;
+					}
+				}
+			}
+
+			if(!curr_order_.valid())
+			{
+				will_buy_ = true;
+				push_api("depth", "get", {{"symbol", "btc_cny"}, {"size", "200"}, {"merge", "0"}});
+			}
+			else
+			{
+				push_api("order_info", "post", {{"symbol", "btc_cny"}, {"order_id", curr_order_.id()}});
+			}
+
+			return;
+		}
+
+		if("depth" == name)
+		{
+			if("false" == data["result"].asString())
+			{
+				push_api("depth", "get", {{"symbol", "btc_cny"}, {"size", "200"}, {"merge", "0"}});
+				return;
+			}
+
+			if(will_buy_)
+			{
+				const Json::Value& asks = data["asks"];
+				const Json::Value& lowest_ask = asks[asks.size() - 1];
+
+				double buy_price = std::stod(lowest_ask[0].asString());
+				double buy_amount = std::stod(lowest_ask[1].asString());
+
+				sim_buy(buy_price, buy_amount);
+			}
+			else if(will_sell_)
+			{
+				const Json::Value& bids = data["bids"];
+				const Json::Value& highest_bid = bids[0];
+
+				double sell_price = std::stod(highest_bid[0].asString());
+				double sell_amount = std::stod(highest_bid[1].asString());
+
+				sim_sell(sell_price, sell_amount);
+			}
+
+			return;
+		}
+
+		if("trade" == name)
+		{
+			if("false" == data["result"].asString())
+			{
+				push_api("depth", "get", {{"symbol", "btc_cny"}, {"size", "200"}, {"merge", "0"}});
+				return;
+			}
+
+			return;
+		}
+	}
+
+	void dump_sim_account()
+	{
+		dump_helper _("sim account #" + std::to_string(no_));
+
+		std::cout << "money: " << sim_money << "\n";
+		std::cout << "btc: " << sim_btc << "\n";
+	}
+
+	void sim_buy(double price, double amount)
+	{
+		if(sim_money > 0.0 && (sim_sell_price < 0.0 || sim_sell_price > price))
+		{
+			buy_idle_round_ = 0;
+
+			double total = price * amount;
+
+			if(sim_money < total)
+			{
+				std::cout << "buy " << price << " " << sim_money / price << "\n";
+
+				sim_btc += sim_money / price;
+				sim_money = 0.0;
+			}
+			else
+			{
+				std::cout << "buy " << price << " " << amount << "\n";
+
+				sim_money -= total;
+				sim_btc += amount;
+			}
+
+			dump_sim_account();
+
+			will_buy_ = false;
+			will_sell_ = true;
+
+			sim_buy_price = price;
+		}
+		else
+		{
+			if(++buy_idle_round_ >= max_buy_idle_round_)
+			{
+				std::cout << "force buy\n";
+				sim_sell_price = -1.0;
+			}
+		}
+
+		push_api("depth", "get", {{"symbol", "btc_cny"}, {"size", "200"}, {"merge", "0"}});
+	}
+
+	void sim_sell(double price, double amount)
+	{
+		if(sim_btc > 0.0 && (sim_buy_price >= 0.0 && sim_buy_price < price))
+		{
+			sell_idle_round_ = 0;
+
+			if(sim_btc < amount)
+			{
+				std::cout << "sell " << price << " " << sim_btc << "\n";
+
+				sim_money += price * sim_btc;
+				sim_btc = 0;
+			}
+			else
+			{
+				std::cout << "sell " << price << " " << amount << "\n";
+
+				sim_money += price * amount;
+				sim_btc -= amount;
+			}
+
+			dump_sim_account();
+
+			will_buy_ = true;
+			will_sell_ = false;
+
+			sim_sell_price = price;
+		}
+		else
+		{
+			// if(++sell_idle_round_ >= max_sell_idle_round_)
+			// {
+			// 	sim_buy_price = 0.0;
+			// }
+		}
+
+		push_api("depth", "get", {{"symbol", "btc_cny"}, {"size", "200"}, {"merge", "0"}});
+	}
+
+	void dump_real_account()
+	{
+	}
+
+	void real_buy(double price, double amount)
+	{
+	}
+
+	void real_sell(double price, double amount)
+	{
+	}
+
 private:
+	int no_;
+	std::ofstream log_;
+
 	boost::asio::ssl::stream<boost::asio::ip::tcp::socket> socket_;
 	boost::asio::ip::tcp::resolver::iterator endpoint_iterator_;
 	boost::asio::streambuf request_;
@@ -362,14 +651,32 @@ private:
 
 	std::string host_, api_key_, secret_key_;
 
-	bool is_busy_, will_halt_;
+	bool is_busy_, will_buy_, will_sell_, will_halt_;
 
 	int period_;
 	unsigned long round_;
 	boost::asio::steady_timer timer_;
 
 	std::queue<api> api_queue_;
+
+	order curr_order_;
+
+	double sim_money, sim_btc;
+	double sim_origin_money, sim_origin_btc;
+	double sim_buy_price, sim_sell_price;
+
+	double real_money, real_btc;
+	double real_origin_money, real_origin_btc;
+	double real_buy_price, real_sell_price;
+
+	unsigned long buy_idle_round_;
+	unsigned long max_buy_idle_round_;
+
+	unsigned long sell_idle_round_;
+	unsigned long max_sell_idle_round_;
 };
+
+int client::s_no = 0;
 
 int main(int argc, char** argv)
 {
