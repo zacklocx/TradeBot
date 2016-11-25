@@ -33,9 +33,9 @@ std::string urlencode(const std::string &s)
 	{
 		const char& c = s[i];
 
-		if((48 <= c && c <= 57) || // 0-9
-			(65 <= c && c <= 90) || // a-z
-			(97 <= c && c <= 122) || // A-Z
+		if((c >= 48 && c <= 57) || // 0-9
+			(c >= 65 && c <= 90) || // a-z
+			(c >= 97 && c <= 122) || // A-Z
 			(c == '-' || c == '_' || c == '.' || c == '~'))
 		{
 			ret << c;

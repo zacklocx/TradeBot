@@ -2,10 +2,7 @@
 #ifndef TRADE_BOT_UTILS
 #define TRADE_BOT_UTILS
 
-#include <string>
-#include <sstream>
-#include <iomanip>
-#include <iostream>
+#include "common.h"
 
 std::time_t timestamp();
 std::string md5(const std::string &s);
@@ -31,48 +28,55 @@ private:
 class line_logger
 {
 public:
-
-#ifdef TB_DEBUG
-	line_logger(std::ostream& out = std::cout, bool show_time = false) : out_(out), show_time_(show_time) {}
-#else
-	line_logger(std::ostream& out = std::cout, bool show_time = false) {}
-#endif
+	line_logger(bool debug_mode = true, bool show_time = false, std::ostream& out = std::cout) :
+		debug_mode_(debug_mode), show_time_(show_time), out_(out)
+	{}
 
 	~line_logger()
 	{
+		if(debug_mode_)
+		{
 #ifdef TB_DEBUG
-		stream_ << "\n";
+			goto label;
+#endif
+			return;
+		}
 
+label:
 		if(show_time_)
 		{
 			auto now = std::chrono::system_clock::now();
 			auto time = std::chrono::system_clock::to_time_t(now);
 
-			out_ << "[" << std::put_time(std::localtime(&time), "%F %X") << "] ";
+			out_ << "[" << std::put_time(std::localtime(&time), "%F %T") << "] ";
 		}
 
+		stream_ << "\n";
 		out_ << stream_.rdbuf();
 		out_.flush();
-#endif
 	}
 
 	template<class T>
 	line_logger& operator <<(const T& value)
 	{
+		if(debug_mode_)
+		{
 #ifdef TB_DEBUG
-		stream_ << value;
+			goto label;
 #endif
+			return *this;
+		}
 
+label:
+		stream_ << value;
 		return *this;
 	}
 
 private:
+	bool debug_mode_, show_time_;
 
-#ifdef TB_DEBUG
-	bool show_time_;
 	std::ostream& out_;
 	std::stringstream stream_;
-#endif
 };
 
 #define LLOG line_logger

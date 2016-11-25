@@ -10,11 +10,11 @@ configure_file(
 	"${PROJECT_SOURCE_DIR}/TradeBotConfig.h"
 )
 
-find_package(Boost COMPONENTS regex system thread REQUIRED)
+find_package(Boost COMPONENTS system REQUIRED)
 find_package(openssl REQUIRED)
 find_package(jsoncpp REQUIRED)
 
-set(EXTRA_LIBS ${EXTRA_LIBS} ${Boost_REGEX_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY})
+set(EXTRA_LIBS ${EXTRA_LIBS} ${Boost_SYSTEM_LIBRARY})
 set(EXTRA_LIBS ${EXTRA_LIBS} ${OPENSSL_LIBRARIES})
 set(EXTRA_LIBS ${EXTRA_LIBS} ${JSONCPP_LIBRARIES})
 

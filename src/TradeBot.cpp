@@ -1,14 +1,5 @@
 
-#include <map>
-#include <queue>
-#include <string>
-#include <chrono>
-#include <utility>
-#include <fstream>
-#include <sstream>
-#include <iostream>
-#include <algorithm>
-#include <initializer_list>
+#include "common.h"
 
 #include <boost/bind.hpp>
 
@@ -21,9 +12,10 @@
 #include "TradeBotConfig.h"
 #include "TradeBotUtils.h"
 
-void dump_json(const Json::Value& v)
+void dump_json(const Json::Value& v, const std::string& tag = "")
 {
-	std::cout << v.toStyledString() << "\n";
+	dump_helper _(tag);
+	LLOG(false) << v.toStyledString();
 }
 
 std::string buffer_to_string(const boost::asio::streambuf& buf)
@@ -39,8 +31,6 @@ std::string buffer_to_string(const boost::asio::streambuf& buf)
 class client
 {
 public:
-	static int s_no;
-
 	typedef std::map<std::string, std::string> param_type;
 
 	struct api
@@ -70,7 +60,7 @@ public:
 
 		std::string id() const { return id_; }
 
-		bool valid() const { return std::stoi(id_) > 0; }
+		bool valid() const { return std::stoul(id_) > 0; }
 
 		bool buy_type() const { return "buy_market" == type_; }
 		bool sell_type() const { return "sell_market" == type_; }
@@ -97,16 +87,12 @@ public:
 			boost::asio::ssl::context& context,
 			const std::string& host,
 			int period) :
-			no_(client::s_no++),
-			log_(std::to_string(timestamp()) + ".log"),
 			socket_(service, context),
 			host_(host),
 			period_(period),
 			timer_(service, std::chrono::milliseconds(period))
 	{
 		init();
-		init_sim();
-		init_real();
 
 		timer_.async_wait(boost::bind(&client::handle_timer, this, boost::asio::placeholders::error));
 
@@ -123,6 +109,7 @@ public:
 		api_key_ = "91a440cb-d0c2-4dd6-924e-320d2a95a543";
 		secret_key_ = "8AF27D70C7D51568ADC74FA0CBF707F0";
 
+		init_account();
 		init_queue();
 
 		is_busy_ = false;
@@ -130,26 +117,13 @@ public:
 		will_halt_ = (0 == api_queue_.size());
 
 		round_ = 0;
-
-		buy_idle_round_ = 0;
-		max_buy_idle_round_ = 100;
-
-		sell_idle_round_ = 0;
-		max_sell_idle_round_ = 100;
 	}
 
-	void init_sim()
+	void init_account()
 	{
-		sim_money = sim_origin_money = 10000.0;
-		sim_btc = sim_origin_btc = 0.0;
-		sim_buy_price = sim_sell_price = -1.0;
-	}
-
-	void init_real()
-	{
-		real_money = real_origin_money = 10000.0;
-		real_btc = real_origin_btc = 0.0;
-		real_buy_price = real_sell_price = -1.0;
+		money = origin_money = 10000.0;
+		btc = origin_btc = 0.0;
+		buy_price = sell_price = -1.0;
 	}
 
 	void start_connect()
@@ -189,7 +163,7 @@ public:
 		}
 		else
 		{
-			LLOG(std::cerr) << "Timer error: " << ec.message();
+			LLOG(false) << "Timer error: " << ec.message();
 		}
 	}
 
@@ -202,7 +176,7 @@ public:
 		}
 		else
 		{
-			LLOG(std::cerr) << "Connect failed: " << ec.message();
+			LLOG(false) << "Connect failed: " << ec.message();
 		}
 	}
 
@@ -214,7 +188,7 @@ public:
 		}
 		else
 		{
-			LLOG(std::cerr) << "Handshake failed: " << ec.message();
+			LLOG(false) << "Handshake failed: " << ec.message();
 		}
 	}
 
@@ -228,7 +202,7 @@ public:
 		}
 		else
 		{
-			LLOG(std::cerr) << "Write failed: " << ec.message();
+			LLOG(false) << "Write failed: " << ec.message();
 		}
 	}
 
@@ -242,8 +216,7 @@ public:
 			{
 				std::string name = api_queue_.front().name_;
 
-				// dump_helper _(name);
-				// dump_json(data);
+				dump_json(data, name);
 
 				api_queue_.pop();
 
@@ -255,7 +228,7 @@ public:
 		}
 		else
 		{
-			LLOG(std::cerr) << "Read failed: " << ec.message();
+			LLOG(false) << "Read failed: " << ec.message();
 		}
 	}
 
@@ -269,7 +242,7 @@ public:
 
 		if(the_method != "GET" && the_method != "POST")
 		{
-			LLOG(std::cerr) << "Unsupported method";
+			LLOG(false) << "Unsupported method";
 			return;
 		}
 
@@ -348,13 +321,13 @@ public:
 
 		if(!response_stream || http_version.substr(0, 5) != "HTTP/")
 		{
-			LLOG(std::cerr) << "Invalid response";
+			LLOG(false) << "Invalid response";
 			return false;
 		}
 
 		if(status_code != 200)
 		{
-			LLOG(std::cerr) << "Response returned with status code " << status_code;
+			LLOG(false) << "Response returned with status code " << status_code;
 			return false;
 		}
 
@@ -377,7 +350,7 @@ public:
 
 		if(0 == response_.size())
 		{
-			LLOG(std::cerr) << "Empty response";
+			LLOG(false) << "Empty response";
 			return false;
 		}
 
@@ -387,7 +360,7 @@ public:
 
 		if(!reader.parse(response_stream, root))
 		{
-			LLOG(std::cerr) << "Parse failed";
+			LLOG(false) << "Parse failed";
 			return false;
 		}
 
@@ -453,7 +426,7 @@ public:
 						{
 							if(curr_order_.buy_type())
 							{
-								log_ << curr_order_.id() << " buy "
+								LLOG(false) << curr_order_.id() << " buy "
 									<< curr_order_.avg_price() << " " << curr_order_.deal_amount() << "\n";
 
 								will_sell_ = true;
@@ -461,7 +434,7 @@ public:
 							}
 							else if(curr_order_.sell_type())
 							{
-								log_ << curr_order_.id() << " sell "
+								LLOG(false) << curr_order_.id() << " sell "
 									<< curr_order_.avg_price() << " " << curr_order_.deal_amount() << "\n";
 
 								will_buy_ = true;
@@ -511,7 +484,7 @@ public:
 				double buy_price = std::stod(lowest_ask[0].asString());
 				double buy_amount = std::stod(lowest_ask[1].asString());
 
-				sim_buy(buy_price, buy_amount);
+				buy(buy_price, buy_amount);
 			}
 			else if(will_sell_)
 			{
@@ -521,7 +494,7 @@ public:
 				double sell_price = std::stod(highest_bid[0].asString());
 				double sell_amount = std::stod(highest_bid[1].asString());
 
-				sim_sell(sell_price, sell_amount);
+				sell(sell_price, sell_amount);
 			}
 
 			return;
@@ -539,111 +512,77 @@ public:
 		}
 	}
 
-	void dump_sim_account()
+	void dump_account()
 	{
-		dump_helper _("sim account #" + std::to_string(no_));
+		dump_helper _("dump_account");
 
-		std::cout << "money: " << sim_money << "\n";
-		std::cout << "btc: " << sim_btc << "\n";
+		LLOG(false) << "money: " << money;
+		LLOG(false) << "btc: " << btc;
 	}
 
-	void sim_buy(double price, double amount)
+	void buy(double price, double amount)
 	{
-		if(sim_money > 0.0 && (sim_sell_price < 0.0 || sim_sell_price > price))
+		if(money > 0.0 && (sell_price < 0.0 || sell_price > price))
 		{
-			buy_idle_round_ = 0;
-
 			double total = price * amount;
 
-			if(sim_money < total)
+			if(money < total)
 			{
-				std::cout << "buy " << price << " " << sim_money / price << "\n";
+				LLOG(false) << "buy " << price << " " << money / price << "\n";
 
-				sim_btc += sim_money / price;
-				sim_money = 0.0;
+				btc += money / price;
+				money = 0.0;
 			}
 			else
 			{
-				std::cout << "buy " << price << " " << amount << "\n";
+				LLOG(false) << "buy " << price << " " << amount << "\n";
 
-				sim_money -= total;
-				sim_btc += amount;
+				money -= total;
+				btc += amount;
 			}
 
-			dump_sim_account();
+			dump_account();
 
 			will_buy_ = false;
 			will_sell_ = true;
 
-			sim_buy_price = price;
-		}
-		else
-		{
-			if(++buy_idle_round_ >= max_buy_idle_round_)
-			{
-				std::cout << "force buy\n";
-				sim_sell_price = -1.0;
-			}
+			buy_price = price;
 		}
 
 		push_api("depth", "get", {{"symbol", "btc_cny"}, {"size", "200"}, {"merge", "0"}});
 	}
 
-	void sim_sell(double price, double amount)
+	void sell(double price, double amount)
 	{
-		if(sim_btc > 0.0 && (sim_buy_price >= 0.0 && sim_buy_price < price))
+		if(btc > 0.0 && (buy_price >= 0.0 && buy_price < price))
 		{
-			sell_idle_round_ = 0;
-
-			if(sim_btc < amount)
+			if(btc < amount)
 			{
-				std::cout << "sell " << price << " " << sim_btc << "\n";
+				LLOG(false) << "sell " << price << " " << btc << "\n";
 
-				sim_money += price * sim_btc;
-				sim_btc = 0;
+				money += price * btc;
+				btc = 0;
 			}
 			else
 			{
-				std::cout << "sell " << price << " " << amount << "\n";
+				LLOG(false) << "sell " << price << " " << amount << "\n";
 
-				sim_money += price * amount;
-				sim_btc -= amount;
+				money += price * amount;
+				btc -= amount;
 			}
 
-			dump_sim_account();
+			dump_account();
 
 			will_buy_ = true;
 			will_sell_ = false;
 
-			sim_sell_price = price;
-		}
-		else
-		{
-			// if(++sell_idle_round_ >= max_sell_idle_round_)
-			// {
-			// 	sim_buy_price = 0.0;
-			// }
+			sell_price = price;
 		}
 
 		push_api("depth", "get", {{"symbol", "btc_cny"}, {"size", "200"}, {"merge", "0"}});
 	}
 
-	void dump_real_account()
-	{
-	}
-
-	void real_buy(double price, double amount)
-	{
-	}
-
-	void real_sell(double price, double amount)
-	{
-	}
-
 private:
-	int no_;
-	std::ofstream log_;
-
 	boost::asio::ssl::stream<boost::asio::ip::tcp::socket> socket_;
 	boost::asio::ip::tcp::resolver::iterator endpoint_iterator_;
 	boost::asio::streambuf request_;
@@ -661,22 +600,10 @@ private:
 
 	order curr_order_;
 
-	double sim_money, sim_btc;
-	double sim_origin_money, sim_origin_btc;
-	double sim_buy_price, sim_sell_price;
-
-	double real_money, real_btc;
-	double real_origin_money, real_origin_btc;
-	double real_buy_price, real_sell_price;
-
-	unsigned long buy_idle_round_;
-	unsigned long max_buy_idle_round_;
-
-	unsigned long sell_idle_round_;
-	unsigned long max_sell_idle_round_;
+	double money, btc;
+	double origin_money, origin_btc;
+	double buy_price, sell_price;
 };
-
-int client::s_no = 0;
 
 int main(int argc, char** argv)
 {
@@ -696,7 +623,7 @@ int main(int argc, char** argv)
 	}
 	catch(std::exception& e)
 	{
-		LLOG(std::cerr) << "Exception: " << e.what();
+		LLOG(false) << "Exception: " << e.what();
 	}
 
 	return 0;
