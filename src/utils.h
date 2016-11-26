@@ -2,7 +2,8 @@
 #ifndef UTILS_INCLUDED
 #define UTILS_INCLUDED
 
-#include "common.h"
+#include <ctime>
+#include <string>
 
 std::time_t timestamp();
 std::string md5(const std::string &s);

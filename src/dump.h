@@ -2,7 +2,11 @@
 #ifndef DUMP_INCLUDED
 #define DUMP_INCLUDED
 
-#include "common.h"
+#include <chrono>
+#include <string>
+#include <sstream>
+#include <iomanip>
+#include <iostream>
 
 class dump_helper_t
 {
@@ -82,7 +86,7 @@ private:
 	bool debug_mode_, show_time_;
 
 	std::ostream& out_;
-	std::stringstream stream_;
+	std::ostringstream stream_;
 };
 
 #define LLOG line_dumper_t
