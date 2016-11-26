@@ -1,38 +1,43 @@
 
-#ifndef TRADE_BOT_UTILS
-#define TRADE_BOT_UTILS
+#ifndef DUMP_INCLUDED
+#define DUMP_INCLUDED
 
 #include "common.h"
 
-std::time_t timestamp();
-std::string md5(const std::string &s);
-std::string urlencode(const std::string &s);
-
-class dump_helper
+class dump_helper_t
 {
 public:
-	dump_helper(const std::string& tag = "") : tag_(tag)
+	dump_helper_t(const std::string& tag = "", std::ostream& out = std::cout) : tag_(tag), out_(out)
 	{
-		std::cout << "------------ " << tag_ << " begin ------------\n";
+		if(tag_.length() > 0)
+		{
+			out << "[" << tag << "]\n";
+			out << "----------------------START----------------------\n";
+		}
 	}
 
-	~dump_helper()
+	~dump_helper_t()
 	{
-		std::cout << "------------ " << tag_ << " end ------------\n\n";
+		if(tag_.length() > 0)
+		{
+			out_ << "-----------------------END-----------------------\n\n";
+			out_.flush();
+		}
 	}
 
 private:
 	std::string tag_;
+	std::ostream& out_;
 };
 
-class line_logger
+class line_dumper_t
 {
 public:
-	line_logger(bool debug_mode = true, bool show_time = false, std::ostream& out = std::cout) :
+	line_dumper_t(bool debug_mode = true, bool show_time = false, std::ostream& out = std::cout) :
 		debug_mode_(debug_mode), show_time_(show_time), out_(out)
 	{}
 
-	~line_logger()
+	~line_dumper_t()
 	{
 		if(debug_mode_)
 		{
@@ -52,12 +57,13 @@ label:
 		}
 
 		stream_ << "\n";
+
 		out_ << stream_.rdbuf();
 		out_.flush();
 	}
 
-	template<class T>
-	line_logger& operator <<(const T& value)
+	template<typename T>
+	line_dumper_t& operator <<(const T& t)
 	{
 		if(debug_mode_)
 		{
@@ -68,7 +74,7 @@ label:
 		}
 
 label:
-		stream_ << value;
+		stream_ << t;
 		return *this;
 	}
 
@@ -79,6 +85,6 @@ private:
 	std::stringstream stream_;
 };
 
-#define LLOG line_logger
+#define LLOG line_dumper_t
 
-#endif // TRADE_BOT_UTILS
+#endif /* DUMP_INCLUDED */

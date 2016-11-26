@@ -1,6 +1,4 @@
 
-#include "common.h"
-
 #include <boost/bind.hpp>
 
 #include <boost/asio.hpp>
@@ -10,11 +8,13 @@
 #include <json/json.h>
 
 #include "TradeBotConfig.h"
-#include "TradeBotUtils.h"
 
-void dump_json(const Json::Value& v, const std::string& tag = "")
+#include "dump.h"
+#include "utils.h"
+
+void dump_json(const Json::Value& v, const std::string& tag)
 {
-	dump_helper _(tag);
+	dump_helper_t _(tag);
 	LLOG(false) << v.toStyledString();
 }
 
@@ -215,11 +215,9 @@ public:
 			if(parse_response(data))
 			{
 				std::string name = api_queue_.front().name_;
-
 				dump_json(data, name);
 
 				api_queue_.pop();
-
 				analyze(name, data);
 
 				is_busy_ = false;
@@ -514,7 +512,7 @@ public:
 
 	void dump_account()
 	{
-		dump_helper _("dump_account");
+		dump_helper_t _("dump_account");
 
 		LLOG(false) << "money: " << money;
 		LLOG(false) << "btc: " << btc;

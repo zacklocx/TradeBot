@@ -1,3 +1,7 @@
+
+#ifndef COMMON_INCLUDED
+#define COMMON_INCLUDED
+
 #include <map>
 #include <list>
 #include <queue>
@@ -13,3 +17,5 @@
 #include <algorithm>
 #include <functional>
 #include <initializer_list>
+
+#endif /* COMMON_INCLUDED */
