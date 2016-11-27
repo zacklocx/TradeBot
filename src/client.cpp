@@ -27,17 +27,46 @@ void client_t::request(const api_t& api)
 
 	boost::system::error_code ec;
 
+	LLOG(false) << "-5\n";
+
 	operator()(ec, 0);
+
+	LLOG(false) << "-4\n";
 }
 
 void client_t::operator()(const boost::system::error_code& ec, size_t bt /* = 0 */)
 {
+	LLOG(false) << "-3\n";
+
 	if(!ec)
 	{
+		LLOG(false) << "-2\n";
+
 		reenter(this)
 		{
+			LLOG(false) << "-1\n";
+
 			for(;;)
 			{
+				// yield LLOG(false) << "0\n";
+
+				// yield
+				// {
+				// 	LLOG(false) << "1\n";
+				// 	operator()(ec, 0);
+				// }
+
+				// yield
+				// {
+				// 	LLOG(false) << "2\n";
+				// 	operator()(ec, 0);
+				// }
+
+				// yield
+				// {
+				// 	LLOG(false) << "3\n";
+				// 	break;
+				// }
 				yield boost::asio::async_connect(socket_->lowest_layer(), endpoint_, boost::bind(&client_t::operator(), this, boost::asio::placeholders::error, 0));
 				yield socket_->async_handshake(boost::asio::ssl::stream_base::client, *this);
 				yield
