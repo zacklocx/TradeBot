@@ -1,6 +1,8 @@
 
 #include "api.h"
 
+#include "utils.h"
+
 #include <sstream>
 
 param_type api_t::prepare() const
