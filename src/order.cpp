@@ -1,22 +1,13 @@
 
 #include "order.h"
 
+#include <map>
 #include <string>
-#include <unordered_map>
-
-struct EnumClassHash
-{
-    template <typename T>
-    std::size_t operator()(T t) const
-    {
-        return static_cast<std::size_t>(t);
-    }
-};
 
 std::ostream& operator<<(std::ostream& out, const order_t& order)
 {
-	static std::unordered_map<order_type_t, std::string, EnumClassHash> type_map;
-	static std::unordered_map<order_status_t, std::string, EnumClassHash> status_map;
+	static std::map<order_type_t, std::string> type_map;
+	static std::map<order_status_t, std::string> status_map;
 
 	if(0 == type_map.size())
 	{
@@ -41,7 +32,7 @@ std::ostream& operator<<(std::ostream& out, const order_t& order)
 	out << "price: " << order.price() << "\n";
 	out << "amount: " << order.amount() << "\n";
 	out << "avg_price: " << order.avg_price() << "\n";
-	out << "deal_amount: " << order.deal_amount() << "\n";
+	out << "deal_amount: " << order.deal_amount();
 
 	return out;
 }
