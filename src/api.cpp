@@ -48,7 +48,7 @@ std::ostream& operator<<(std::ostream& out, const api_t& api)
 
 	for(const auto& it : param)
 	{
-		out << "\n" << it.first << ": " << it.second;
+		out << "\n  " << it.first << ": " << it.second;
 	}
 
 	return out;
