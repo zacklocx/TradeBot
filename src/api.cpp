@@ -33,8 +33,8 @@ param_type api_t::prepare() const
 
 	param_type ret(param_);
 
-	param_type["api_key"] = api_key;
-	param_type["sign"] = sign;
+	ret["api_key"] = api_key;
+	ret["sign"] = sign;
 
 	return ret;
 }
