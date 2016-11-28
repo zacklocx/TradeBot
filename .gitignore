@@ -10,6 +10,7 @@ install_manifest.txt
 
 lib/
 bin/
+build/
 Testing/
 CMakeFiles/
 _CPack_Packages/
