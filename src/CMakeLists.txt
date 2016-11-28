@@ -27,7 +27,7 @@ set(EXTRA_LIBS ${EXTRA_LIBS} ${JSONCPP_LIBRARIES})
 include_directories($ENV{OPENSSL_ROOT_DIR}/include)
 link_directories($ENV{OPENSSL_ROOT_DIR}/lib)
 
-include_directories(${CMAKE_SOURCE_DIR}/third_party)
+include_directories(${CMAKE_SOURCE_DIR}/third_party/avhttp)
 
 file(GLOB ALL_CPP *.cpp)
 
