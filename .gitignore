@@ -8,8 +8,8 @@ install_manifest.txt
 *.tcl
 *.cmake
 
-lib/
 bin/
+lib/
 build/
 Testing/
 CMakeFiles/
