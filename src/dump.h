@@ -79,6 +79,7 @@ label:
 
 label:
 		stream_ << t;
+
 		return *this;
 	}
 
