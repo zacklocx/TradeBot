@@ -20,6 +20,9 @@ public:
 
 	param_type param() const { return param_; }
 
+	void update_url(const std::string& url) { url_ = url; }
+	void update_method(const std::string& method) { method_ = method; }
+
 	void update_param(const param_type& param) { param_ = param; }
 	void update_param(const std::string& key, const std::string& value) { param_[key] = value; }
 

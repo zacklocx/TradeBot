@@ -13,7 +13,7 @@ class client_t
 public:
 	client_t(boost::asio::io_service& service) : stream_(service) {}
 
-	Json::Value call(const api_t& api, const boost::system::error_code& ec);
+	void call(const api_t& api, boost::system::error_code& ec, Json::Value& data);
 
 private:
 	avhttp::http_stream stream_;
