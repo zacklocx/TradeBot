@@ -37,7 +37,7 @@ private:
 class line_dumper_t
 {
 public:
-	line_dumper_t(bool debug_mode = true, bool show_time = false, std::ostream& out = std::cout) :
+	line_dumper_t(bool debug_mode = false, bool show_time = false, std::ostream& out = std::cout) :
 		debug_mode_(debug_mode), show_time_(show_time), out_(out)
 	{}
 
@@ -62,7 +62,7 @@ label:
 
 		stream_ << "\n";
 
-		out_ << stream_.rdbuf();
+		out_ << stream_.str();
 		out_.flush();
 	}
 
