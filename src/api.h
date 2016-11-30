@@ -6,11 +6,11 @@
 #include <string>
 #include <iostream>
 
-typedef std::map<std::string, std::string> param_type;
-
 class api_t
 {
 public:
+	typedef std::map<std::string, std::string> param_type;
+
 	api_t(const std::string& url = "", const std::string& method = "", const param_type& param = param_type()) :
 		url_(url), method_(method), param_(param)
 	{}
