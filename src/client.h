@@ -14,11 +14,11 @@
 class client_t
 {
 public:
-	typedef std::function<void(const boost::system::error_code&, const Json::Value&)> handler_type;
+	typedef std::function<void(bool, const Json::Value&)> handler_type;
 
 	client_t(boost::asio::io_service& service) : stream_(service) {}
 
-	void call(const api_t& api, boost::system::error_code& ec, Json::Value& json);
+	bool call(const api_t& api, Json::Value& json);
 	void async_call(const api_t& api, handler_type handler);
 
 private:

@@ -5,9 +5,15 @@
 #include <algorithm>
 #include <exception>
 
-void client_t::call(const api_t& api, boost::system::error_code& ec, Json::Value& json)
+#include "dump.h"
+
+bool client_t::call(const api_t& api, Json::Value& json)
 {
+	bool status = false;
+
 	data_ = "";
+
+	boost::system::error_code ec;
 
 	std::string method = api.method();
 
@@ -36,11 +42,21 @@ void client_t::call(const api_t& api, boost::system::error_code& ec, Json::Value
 
 	stream_.close();
 
-	if(boost::asio::error::eof == ec)
+	if(boost::asio::error::eof == ec ||
+		(boost::asio::error::get_ssl_category() == ec.category() &&
+			ERR_PACK(ERR_LIB_SSL, 0, SSL_R_SHORT_READ) == ec.value()))
 	{
 		Json::Reader reader;
 		reader.parse(data_, json);
+
+		status = true;
 	}
+	else
+	{
+		LLOG() << "error: " << ec.message();
+	}
+
+	return status;
 }
 
 void client_t::async_call(const api_t& api, handler_type handler)
@@ -82,9 +98,11 @@ void client_t::handle_open(const boost::system::error_code& ec)
 	{
 		stream_.close();
 
+		LLOG() << "error: " << ec.message();
+
 		if(handler_)
 		{
-			handler_(ec, Json::Value());
+			handler_(false, Json::Value());
 		}
 	}
 }
@@ -106,15 +124,25 @@ void client_t::handle_read(int bytes_transferred, const boost::system::error_cod
 
 		if(handler_)
 		{
+			bool status = false;
+
 			Json::Value json;
 
-			if(boost::asio::error::eof == ec)
+			if(boost::asio::error::eof == ec ||
+				(boost::asio::error::get_ssl_category() == ec.category() &&
+					ERR_PACK(ERR_LIB_SSL, 0, SSL_R_SHORT_READ) == ec.value()))
 			{
 				Json::Reader reader;
 				reader.parse(data_, json);
+
+				status = true;
+			}
+			else
+			{
+				LLOG() << "error: " << ec.message();
 			}
 
-			handler_(ec, json);
+			handler_(status, json);
 		}
 	}
 }
