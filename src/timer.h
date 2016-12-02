@@ -23,20 +23,16 @@ public:
 	{}
 
 	int period() const { return period_; }
-
 	uint64_t count() const { return count_; }
-	uint64_t elapsed() const { return period_ * count_; };
+	bool running() const { return running_; }
 
 	void start();
 	void stop();
 	void reset();
 
-	bool running() const { return running_; }
-
 private:
 	int period_;
 	uint64_t count_;
-
 	bool running_;
 
 	handler_type handler_;
