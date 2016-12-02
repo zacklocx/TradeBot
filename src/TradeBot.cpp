@@ -7,6 +7,7 @@
 #include "TradeBotConfig.h"
 
 #include "dump.h"
+#include "timer.h"
 #include "client.h"
 
 void dump_json(const Json::Value& data, const std::string& tag = "")
@@ -74,6 +75,21 @@ int main(int argc, char** argv)
 				});
 			}
 		});
+
+		timer_t timer(service, 1000, [&]()
+		{
+			uint64_t count = timer.count();
+
+			LLOG() << count;
+
+			if(10 == count)
+			{
+				timer.reset();
+				timer.start();
+			}
+		});
+
+		timer.start();
 
 		service.run();
 	}
