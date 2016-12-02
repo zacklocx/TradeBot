@@ -31,7 +31,7 @@ bool client_t::call(const api_t& api, Json::Value& json)
 	}
 	else
 	{
-		throw std::logic_error("bad method");
+		throw std::logic_error("bad api method");
 	}
 
 	while(!ec)
@@ -53,7 +53,7 @@ bool client_t::call(const api_t& api, Json::Value& json)
 	}
 	else
 	{
-		LLOG() << "error: " << ec.message();
+		LLOG() << "client error: " << ec.message();
 	}
 
 	return status;
@@ -81,7 +81,7 @@ void client_t::async_call(const api_t& api, handler_type handler)
 	}
 	else
 	{
-		throw std::logic_error("bad method");
+		throw std::logic_error("bad api method");
 	}
 }
 
@@ -98,7 +98,7 @@ void client_t::handle_open(const boost::system::error_code& ec)
 	{
 		stream_.close();
 
-		LLOG() << "error: " << ec.message();
+		LLOG() << "client error: " << ec.message();
 
 		if(handler_)
 		{
@@ -139,7 +139,7 @@ void client_t::handle_read(int bytes_transferred, const boost::system::error_cod
 			}
 			else
 			{
-				LLOG() << "error: " << ec.message();
+				LLOG() << "client error: " << ec.message();
 			}
 
 			handler_(status, json);

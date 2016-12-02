@@ -2,6 +2,7 @@
 #ifndef ORDER_INCLUDED
 #define ORDER_INCLUDED
 
+#include <cstdint>
 #include <iostream>
 
 enum class order_type_t
@@ -26,7 +27,7 @@ enum class order_status_t
 class order_t
 {
 public:
-	order_t(long id = -1,
+	order_t(int64_t id = -1,
 		order_type_t type = order_type_t::invalid,
 		order_status_t status = order_status_t::invalid,
 		double price = 0.0,
@@ -38,7 +39,7 @@ public:
 		avg_price_(avg_price), deal_amount_(deal_amount)
 	{}
 
-	long id() const { return id_; }
+	int64_t id() const { return id_; }
 
 	order_type_t type() const { return type_; }
 	order_status_t status() const { return status_; }
@@ -55,7 +56,7 @@ public:
 	void update_deal_amount(double deal_amount) { deal_amount_ = deal_amount; }
 
 private:
-	long id_;
+	int64_t id_;
 
 	order_type_t type_;
 	order_status_t status_;
