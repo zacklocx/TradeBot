@@ -23,36 +23,57 @@ int main(int argc, char** argv)
 
 		client_t client(service);
 
-		Json::Value data;
-		boost::system::error_code ec;
-
-		api_t api;
+		api_t ticker_api;
 
 		{
-			param_type param;
+			api_t::param_type param;
 
 			param["symbol"] = "btc_cny";
 
-			api.update_url("https://www.okcoin.cn/api/v1/ticker.do");
-			api.update_method("GET");
-			api.update_param(param);
+			ticker_api.update_url("https://www.okcoin.cn/api/v1/ticker.do");
+			ticker_api.update_method("GET");
+			ticker_api.update_param(param);
 		}
 
-		data.clear();
-		client.call(api, ec, data);
-		dump_json(data, api.url());
+		api_t userinfo_api;
 
 		{
-			param_type param;
+			api_t::param_type param;
 
-			api.update_url("https://www.okcoin.cn/api/v1/userinfo.do");
-			api.update_method("POST");
-			api.update_param(param);
+			userinfo_api.update_url("https://www.okcoin.cn/api/v1/userinfo.do");
+			userinfo_api.update_method("POST");
+			userinfo_api.update_param(param);
 		}
 
-		data.clear();
-		client.call(api, ec, data);
-		dump_json(data, api.url());
+		// Json::Value json;
+
+		// json.clear();
+		// if(client.call(ticker_api, json))
+		// {
+		// 	dump_json(json, ticker_api.url());
+
+		// 	json.clear();
+		// 	if(client.call(userinfo_api, json))
+		// 	{
+		// 		dump_json(json, userinfo_api.url());
+		// 	}
+		// }
+
+		client.async_call(ticker_api, [&](bool status, const Json::Value& json)
+		{
+			if(status)
+			{
+				dump_json(json, ticker_api.url());
+
+				client.async_call(userinfo_api, [&](bool status, const Json::Value& json)
+				{
+					if(status)
+					{
+						dump_json(json, userinfo_api.url());
+					}
+				});
+			}
+		});
 
 		service.run();
 	}
