@@ -9,12 +9,77 @@
 #include "dump.h"
 #include "timer.h"
 #include "client.h"
+#include "command.h"
 
 void dump_json(const Json::Value& data, const std::string& tag = "")
 {
 	dump_helper_t _(tag);
 	LLOG() << data.toStyledString();
 }
+
+////////////////////////////////////////////////////////////////////////////////
+class command_block_t
+{
+public:
+	command_block_t(int i = 0) : i_(i) {}
+
+	friend int priority(const command_block_t& o);
+	friend void execute(command_block_t& o);
+
+private:
+	int i_;
+
+	void print() const { LLOG() << i_; }
+};
+
+int priority(const command_block_t& o)
+{
+	return o.i_;
+}
+
+void execute(command_block_t& o)
+{
+	return o.print();
+}
+////////////////////////////////////////////////////////////////////////////////
+class call_api_block_t
+{
+public:
+	call_api_block_t(client_t& client, const api_t& api, bool& busy) :
+		client_(client), api_(api), busy_(busy)
+	{}
+
+	void execute()
+	{
+		busy_ = true;
+
+		client_.async_call(api_, [&](bool status, const Json::Value& json)
+		{
+			if(status)
+			{
+				dump_json(json, api_.url());
+				busy_ = false;
+			}
+		});
+	}
+
+private:
+	client_t& client_;
+	const api_t& api_;
+	bool& busy_;
+};
+
+int priority(const call_api_block_t& o)
+{
+	return 100;
+}
+
+void execute(call_api_block_t& o)
+{
+	o.execute();
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char** argv)
 {
@@ -60,32 +125,50 @@ int main(int argc, char** argv)
 		// 	}
 		// }
 
-		client.async_call(ticker_api, [&](bool status, const Json::Value& json)
-		{
-			if(status)
-			{
-				dump_json(json, ticker_api.url());
+		// client.async_call(ticker_api, [&](bool status, const Json::Value& json)
+		// {
+		// 	if(status)
+		// 	{
+		// 		dump_json(json, ticker_api.url());
 
-				client.async_call(userinfo_api, [&](bool status, const Json::Value& json)
-				{
-					if(status)
-					{
-						dump_json(json, userinfo_api.url());
-					}
-				});
+		// 		client.async_call(userinfo_api, [&](bool status, const Json::Value& json)
+		// 		{
+		// 			if(status)
+		// 			{
+		// 				dump_json(json, userinfo_api.url());
+		// 			}
+		// 		});
+		// 	}
+		// });
+
+		bool busy = false;
+
+		command_object_t o(0);
+		command_queue_t q;
+
+		q.push(command_block_t(3));
+		q.push(command_block_t(4));
+		q.push(command_block_t(5));
+
+		q.push(call_api_block_t(client, ticker_api, busy));
+		q.push(call_api_block_t(client, userinfo_api, busy));
+
+		timer_t timer(service, 100, [&]()
+		{
+			if(busy)
+			{
+				return;
 			}
-		});
 
-		timer_t timer(service, 1000, [&]()
-		{
-			uint64_t count = timer.count();
-
-			LLOG() << count;
-
-			if(10 == count)
+			if(!q.empty())
 			{
-				timer.reset();
-				timer.start();
+				o = q.top();
+				q.pop();
+				execute(o);
+			}
+			else
+			{
+				timer.stop();
 			}
 		});
 
