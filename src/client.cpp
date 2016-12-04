@@ -40,6 +40,7 @@ bool client_t::call(const api_t& api, Json::Value& json)
 		std::copy(buffer_->begin(), buffer_->begin() + bytes_transferred, std::back_inserter(data_));
 	}
 
+	stream_->request_options(avhttp::request_opts());
 	stream_->close();
 
 	if(boost::asio::error::eof == ec ||
@@ -96,6 +97,7 @@ void client_t::handle_open(const boost::system::error_code& ec)
 	}
 	else
 	{
+		stream_->request_options(avhttp::request_opts());
 		stream_->close();
 
 		LLOG() << "client error: " << ec.message();
@@ -120,6 +122,7 @@ void client_t::handle_read(int bytes_transferred, const boost::system::error_cod
 	}
 	else
 	{
+		stream_->request_options(avhttp::request_opts());
 		stream_->close();
 
 		if(handler_)
