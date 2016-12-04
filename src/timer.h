@@ -5,6 +5,7 @@
 #include <cstdint>
 
 #include <chrono>
+#include <memory>
 #include <utility>
 #include <functional>
 
@@ -19,7 +20,7 @@ public:
 	timer_t(boost::asio::io_service& service, int period, handler_type handler) :
 		period_(period), count_(0), running_(false),
 		handler_(std::move(handler)),
-		timer_(service, std::chrono::milliseconds(period))
+		timer_(std::make_shared<boost::asio::steady_timer>(std::ref(service), std::chrono::milliseconds(period)))
 	{}
 
 	int period() const { return period_; }
@@ -37,7 +38,7 @@ private:
 
 	handler_type handler_;
 
-	boost::asio::steady_timer timer_;
+	std::shared_ptr<boost::asio::steady_timer> timer_;
 
 	void handle_wait(const boost::system::error_code& ec);
 };
