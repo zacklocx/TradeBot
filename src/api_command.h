@@ -9,7 +9,7 @@
 class api_command_t
 {
 public:
-	api_command_t(const api_t& api, const client_t& client, client_t::handler_type handler, int priority = 0) :
+	api_command_t(const api_t& api, client_t& client, client_t::handler_type handler, int priority = 0) :
 		api_(api), client_(client), handler_(handler), priority_(priority)
 	{}
 
@@ -19,13 +19,10 @@ public:
 private:
 	api_t api_;
 
-	client_t client_;
+	client_t& client_;
 	client_t::handler_type handler_;
 
 	int priority_;
 };
-
-inline int priority(const api_command_t& o) { return o.priority(); }
-inline void execute(api_command_t& o) { o.execute(); }
 
 #endif /* API_COMMAND_INCLUDED */
