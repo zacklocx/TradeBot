@@ -45,30 +45,35 @@ int main(int argc, char** argv)
 			userinfo_api.update_param(param);
 		}
 
-		bool busy = false;
+		bool busy = false, halt = false;
+
+		auto common_handler = [&](bool status, const Json::Value& json)
+		{
+			busy = false;
+
+			if(status)
+			{
+				dump_json(json);
+			}
+			else
+			{
+				halt = true;
+			}
+		};
 
 		command_queue_t q;
 
-		q.push(api_command_t(ticker_api, client, [&](bool status, const Json::Value& json)
-		{
-			if(status)
-			{
-				dump_json(json, ticker_api.url());
-				busy = false;
-			}
-		}));
-
-		q.push(api_command_t(userinfo_api, client, [&](bool status, const Json::Value& json)
-		{
-			if(status)
-			{
-				dump_json(json, userinfo_api.url());
-				busy = false;
-			}
-		}));
+		q.push(api_command_t(ticker_api, client, common_handler, -1));
+		q.push(api_command_t(userinfo_api, client, common_handler));
 
 		timer_t timer(service, 100, [&]()
 		{
+			if(halt)
+			{
+				timer.stop();
+				return;
+			}
+
 			if(busy)
 			{
 				return;
