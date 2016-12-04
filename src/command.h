@@ -5,6 +5,7 @@
 #include <queue>
 #include <memory>
 #include <utility>
+#include <type_traits>
 
 template<typename T>
 int priority(const T& t) { return 0; }
@@ -35,8 +36,17 @@ private:
 	{
 		model_t(T t) : data_(std::move(t)) {}
 
-		int priority_() const { return priority(data_); }
-		void execute_() { execute(data_); }
+		int priority_() const
+		{
+			bool test = std::is_member_pointer<decltype(&T::priority)>::value;
+			return test? data_.priority() : priority(data_);
+		}
+
+		void execute_()
+		{
+			bool test = std::is_member_pointer<decltype(&T::execute)>::value;
+			test? data_.execute() : execute(data_);
+		}
 
 		T data_;
 	};
