@@ -18,7 +18,7 @@ class client_t
 public:
 	typedef std::function<void(bool, const Json::Value&)> handler_type;
 
-	client_t(boost::asio::io_service& service) : stream_(std::make_shared<avhttp::http_stream>(service))
+	client_t(boost::asio::io_service& service) : stream_(std::make_shared<avhttp::http_stream>(std::ref(service)))
 	{
 		buffer_ = std::make_shared<std::array<char, BUFFER_SIZE>>();
 	}
