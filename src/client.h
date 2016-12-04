@@ -27,14 +27,14 @@ public:
 	void async_call(const api_t& api, handler_type handler);
 
 private:
+	static const int BUFFER_SIZE = 1024;
+
 	std::shared_ptr<avhttp::http_stream> stream_;
 
 	handler_type handler_;
 
 	std::string data_;
 	std::shared_ptr<std::array<char, BUFFER_SIZE>> buffer_;
-
-	static const int BUFFER_SIZE = 1024;
 
 	void handle_open(const boost::system::error_code& ec);
 	void handle_read(int bytes_transferred, const boost::system::error_code& ec);
