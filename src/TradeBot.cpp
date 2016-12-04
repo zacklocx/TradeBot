@@ -26,7 +26,6 @@ int main(int argc, char** argv)
 		client_t client(service);
 
 		api_t ticker_api;
-
 		{
 			api_t::param_type param;
 
@@ -38,7 +37,6 @@ int main(int argc, char** argv)
 		}
 
 		api_t userinfo_api;
-
 		{
 			api_t::param_type param;
 
@@ -49,7 +47,6 @@ int main(int argc, char** argv)
 
 		bool busy = false;
 
-		command_object_t o(0);
 		command_queue_t q;
 
 		q.push(api_command_t(ticker_api, client, [&](bool status, const Json::Value& json)
@@ -81,7 +78,7 @@ int main(int argc, char** argv)
 			{
 				busy = true;
 
-				o = q.top();
+				auto o = q.top();
 				q.pop();
 				execute(o);
 			}
