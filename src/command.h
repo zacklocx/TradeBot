@@ -45,7 +45,7 @@ private:
 };
 
 inline int priority(const command_object_t& o) { return o.self_->priority_(); }
-inline execute(command_object_t& o) { return o.self_->execute_(); }
+inline void execute(command_object_t& o) { o.self_->execute_(); }
 
 inline bool operator<(const command_object_t& lhs, const command_object_t& rhs)
 {
