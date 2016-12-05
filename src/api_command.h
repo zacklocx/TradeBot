@@ -25,4 +25,7 @@ private:
 	int priority_;
 };
 
+int priority(const api_command_t& o) { return o.priority(); }
+void execute(api_command_t& o) { o.execute(); }
+
 #endif /* API_COMMAND_INCLUDED */
