@@ -20,17 +20,8 @@ enum class command_executor_status_t
 class command_executor_t
 {
 public:
-	command_executor_t(command_queue_t& queue) : halt_(false), busy_(false), queue_(queue)
-	{
-		conn_command_finish = sig_command_finish.connect(boost::bind(&command_executor_t::on_command_finish, this, _1));
-		conn_command_fail = sig_command_fail.connect(boost::bind(&command_executor_t::on_command_fail, this, _1));
-	}
-
-	~command_executor_t()
-	{
-		conn_command_finish.disconnect();
-		conn_command_fail.disconnect();
-	}
+	command_executor_t(command_queue_t& queue);
+	~command_executor_t();
 
 	command_executor_status_t execute();
 
