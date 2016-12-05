@@ -5,7 +5,6 @@
 #include <queue>
 #include <memory>
 #include <utility>
-#include <type_traits>
 
 template<typename T>
 int priority(const T& t) { return 0; }
@@ -19,8 +18,8 @@ public:
 	template<typename T>
 	command_object_t(T t) : self_(std::make_shared<model_t<T>>(std::move(t))) {}
 
-	friend int priority(const command_object_t& o) { return o.self_->priority_(); }
-	friend void execute(command_object_t& o) { return o.self_->execute_(); }
+	friend int priority(const command_object_t& o);
+	friend void execute(command_object_t& o);
 
 private:
 	struct concept_t
@@ -36,23 +35,17 @@ private:
 	{
 		model_t(T t) : data_(std::move(t)) {}
 
-		int priority_() const
-		{
-			bool test = std::is_member_pointer<decltype(&T::priority)>::value;
-			return test? data_.priority() : priority(data_);
-		}
-
-		void execute_()
-		{
-			bool test = std::is_member_pointer<decltype(&T::execute)>::value;
-			test? data_.execute() : execute(data_);
-		}
+		int priority_() const { return priority(data_); }
+		void execute_() { execute(data_); }
 
 		T data_;
 	};
 
 	std::shared_ptr<concept_t> self_;
 };
+
+inline int priority(const command_object_t& o) { return o.self_->priority_(); }
+inline execute(command_object_t& o) { return o.self_->execute_(); }
 
 inline bool operator<(const command_object_t& lhs, const command_object_t& rhs)
 {
