@@ -9,15 +9,7 @@
 #include "dump.h"
 #include "timer.h"
 #include "client.h"
-#include "api_command.h"
-#include "command_signals.h"
-#include "command_executor.h"
-
-void dump_json(const Json::Value& data, const std::string& tag = "")
-{
-	dump_helper_t _(tag);
-	LLOG() << data.toStyledString();
-}
+#include "executor.h"
 
 int main(int argc, char** argv)
 {
@@ -47,32 +39,18 @@ int main(int argc, char** argv)
 			userinfo_api.update_param(param);
 		}
 
-		auto common_handler = [&](bool status, const Json::Value& json)
-		{
-			if(status)
-			{
-				dump_json(json);
-				sig_command_finish(json);
-			}
-			else
-			{
-				sig_command_fail(json);
-			}
-		};
-
 		command_queue_t q;
 
-		q.push(api_command_t(ticker_api, client, common_handler, -1));
-		q.push(api_command_t(userinfo_api, client, common_handler));
+		q.push(client.set(-1).set(ticker_api).set(client));
+		q.push(client.set(userinfo_api).set(client));
 
-		command_executor_t executor(q);
+		executor_t executor(q);
 
 		timer_t timer(service, 100, [&]()
 		{
-			command_executor_status_t status = executor.execute();
+			executor_status_t status = executor.execute();
 
-			if(command_executor_status_t::halt == status ||
-				command_executor_status_t::empty == status)
+			if(executor_status_t::halt == status || executor_status_t::empty == status)
 			{
 				timer.stop();
 			}

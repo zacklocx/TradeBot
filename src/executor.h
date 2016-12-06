@@ -1,13 +1,13 @@
 
-#ifndef COMMAND_EXECUTOR_INCLUDED
-#define COMMAND_EXECUTOR_INCLUDED
+#ifndef EXECUTOR_INCLUDED
+#define EXECUTOR_INCLUDED
 
 #include <json/json.h>
 
 #include "command.h"
-#include "command_signals.h"
+#include "signals.h"
 
-enum class command_executor_status_t
+enum class executor_status_t
 {
 	invalid = -1,
 	halt,
@@ -17,13 +17,13 @@ enum class command_executor_status_t
 	last
 };
 
-class command_executor_t
+class executor_t
 {
 public:
-	command_executor_t(command_queue_t& queue);
-	~command_executor_t();
+	executor_t(command_queue_t& queue);
+	~executor_t();
 
-	command_executor_status_t execute();
+	executor_status_t execute();
 
 private:
 	bool halt_, busy_;
@@ -36,4 +36,4 @@ private:
 	void on_command_fail(const Json::Value& json);
 };
 
-#endif /* COMMAND_EXECUTOR_INCLUDED */
+#endif /* EXECUTOR_INCLUDED */

@@ -6,28 +6,30 @@
 #include <exception>
 
 #include "dump.h"
+#include "utils.h"
+#include "signals.h"
 
 bool client_t::call(const api_t& api, Json::Value& json)
 {
-	bool status = false;
+	api_ = api;
 
-	data_ = "";
+	bool status = false;
 
 	boost::system::error_code ec;
 
-	std::string method = api.method();
+	std::string method = api_.method();
 
 	if("GET" == method)
 	{
-		std::string query = avhttp::map_to_query(api.param());
-		std::string full_url = api.url() + "?" + query;
+		std::string query = avhttp::map_to_query(api_.param());
+		std::string full_url = api_.url() + "?" + query;
 
 		stream_->open(full_url, ec);
 	}
 	else if("POST" == method)
 	{
-		avhttp::post_form(*stream_, api.prepare());
-		stream_->open(api.url(), ec);
+		avhttp::post_form(*stream_, api_.prepare());
+		stream_->open(api_.url(), ec);
 	}
 	else
 	{
@@ -37,7 +39,7 @@ bool client_t::call(const api_t& api, Json::Value& json)
 	while(!ec)
 	{
 		std::size_t bytes_transferred = stream_->read_some(boost::asio::buffer(*buffer_), ec);
-		std::copy(buffer_->begin(), buffer_->begin() + bytes_transferred, std::back_inserter(data_));
+		std::copy(buffer_->begin(), buffer_->begin() + bytes_transferred, std::back_inserter(*data_));
 	}
 
 	stream_->request_options(avhttp::request_opts());
@@ -48,7 +50,7 @@ bool client_t::call(const api_t& api, Json::Value& json)
 			ERR_PACK(ERR_LIB_SSL, 0, SSL_R_SHORT_READ) == ec.value()))
 	{
 		Json::Reader reader;
-		reader.parse(data_, json);
+		reader.parse(*data_, json);
 
 		status = true;
 	}
@@ -57,28 +59,29 @@ bool client_t::call(const api_t& api, Json::Value& json)
 		LLOG() << "client error: " << ec.message();
 	}
 
+	*data_ = "";
+
 	return status;
 }
 
 void client_t::async_call(const api_t& api, handler_type handler)
 {
+	api_ = api;
 	handler_ = handler;
 
-	data_ = "";
-
-	std::string method = api.method();
+	std::string method = api_.method();
 
 	if("GET" == method)
 	{
-		std::string query = avhttp::map_to_query(api.param());
-		std::string full_url = api.url() + "?" + query;
+		std::string query = avhttp::map_to_query(api_.param());
+		std::string full_url = api_.url() + "?" + query;
 
-		stream_->async_open(full_url, boost::bind(&client_t::handle_open, this, boost::asio::placeholders::error));
+		stream_->async_open(full_url, *this);
 	}
 	else if("POST" == method)
 	{
-		avhttp::post_form(*stream_, api.prepare());
-		stream_->async_open(api.url(), boost::bind(&client_t::handle_open, this, boost::asio::placeholders::error));
+		avhttp::post_form(*stream_, api_.prepare());
+		stream_->async_open(api_.url(), *this);
 	}
 	else
 	{
@@ -86,19 +89,31 @@ void client_t::async_call(const api_t& api, handler_type handler)
 	}
 }
 
-void client_t::handle_open(const boost::system::error_code& ec)
+void client_t::operator()(bool status, const Json::Value& json)
+{
+	if(status)
+	{
+		dump_json(json, api_.url());
+		sig_command_finish(json);
+	}
+	else
+	{
+		sig_command_fail(json);
+	}
+}
+
+void client_t::operator()(const boost::system::error_code& ec)
 {
 	if(!ec)
 	{
-		stream_->async_read_some(boost::asio::buffer(*buffer_),
-			boost::bind(&client_t::handle_read, this,
-				boost::asio::placeholders::bytes_transferred,
-				boost::asio::placeholders::error));
+		stream_->async_read_some(boost::asio::buffer(*buffer_), *this);
 	}
 	else
 	{
 		stream_->request_options(avhttp::request_opts());
 		stream_->close();
+
+		*data_ = "";
 
 		LLOG() << "client error: " << ec.message();
 
@@ -109,16 +124,12 @@ void client_t::handle_open(const boost::system::error_code& ec)
 	}
 }
 
-void client_t::handle_read(int bytes_transferred, const boost::system::error_code& ec)
+void client_t::operator()(const boost::system::error_code& ec, int bytes_transferred)
 {
 	if(!ec)
 	{
-		std::copy(buffer_->begin(), buffer_->begin() + bytes_transferred, std::back_inserter(data_));
-
-		stream_->async_read_some(boost::asio::buffer(*buffer_),
-			boost::bind(&client_t::handle_read, this,
-				boost::asio::placeholders::bytes_transferred,
-				boost::asio::placeholders::error));
+		std::copy(buffer_->begin(), buffer_->begin() + bytes_transferred, std::back_inserter(*data_));
+		stream_->async_read_some(boost::asio::buffer(*buffer_), *this);
 	}
 	else
 	{
@@ -136,7 +147,7 @@ void client_t::handle_read(int bytes_transferred, const boost::system::error_cod
 					ERR_PACK(ERR_LIB_SSL, 0, SSL_R_SHORT_READ) == ec.value()))
 			{
 				Json::Reader reader;
-				reader.parse(data_, json);
+				reader.parse(*data_, json);
 
 				status = true;
 			}
@@ -147,5 +158,7 @@ void client_t::handle_read(int bytes_transferred, const boost::system::error_cod
 
 			handler_(status, json);
 		}
+
+		*data_ = "";
 	}
 }

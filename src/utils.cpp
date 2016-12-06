@@ -6,6 +6,8 @@
 
 #include <openssl/md5.h>
 
+#include "dump.h"
+
 std::time_t timestamp()
 {
 	return std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
@@ -52,4 +54,10 @@ std::string urlencode(const std::string &s)
 	}
 
 	return ret.str();
+}
+
+void dump_json(const Json::Value& json, const std::string& tag /* = "" */)
+{
+	dump_helper_t _(tag);
+	LLOG() << json.toStyledString();
 }
