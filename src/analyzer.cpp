@@ -5,7 +5,6 @@
 
 #include "dump.h"
 #include "utils.h"
-#include "account.h"
 
 analyzer_t::analyzer_t(client_t& client, command_queue_t& queue) : client_(client), queue_(queue)
 {
