@@ -28,7 +28,7 @@ bool client_t::call(const api_t& api, Json::Value& json)
 	}
 	else if("POST" == method)
 	{
-		avhttp::post_form(*stream_, api_.prepare());
+		avhttp::post_form(*stream_, api_.sign());
 		stream_->open(api_.url(), ec);
 	}
 	else
@@ -80,7 +80,7 @@ void client_t::async_call(const api_t& api, handler_type handler)
 	}
 	else if("POST" == method)
 	{
-		avhttp::post_form(*stream_, api_.prepare());
+		avhttp::post_form(*stream_, api_.sign());
 		stream_->async_open(api_.url(), *this);
 	}
 	else

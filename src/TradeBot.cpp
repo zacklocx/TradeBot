@@ -1,6 +1,7 @@
 
 #include <string>
 #include <exception>
+#include <initializer_list>
 
 #include <json/json.h>
 
@@ -19,25 +20,8 @@ int main(int argc, char** argv)
 
 		client_t client(service);
 
-		api_t ticker_api;
-		{
-			api_t::param_type param;
-
-			param["symbol"] = "btc_cny";
-
-			ticker_api.update_url("https://www.okcoin.cn/api/v1/ticker.do");
-			ticker_api.update_method("GET");
-			ticker_api.update_param(param);
-		}
-
-		api_t userinfo_api;
-		{
-			api_t::param_type param;
-
-			userinfo_api.update_url("https://www.okcoin.cn/api/v1/userinfo.do");
-			userinfo_api.update_method("POST");
-			userinfo_api.update_param(param);
-		}
+		api_t ticker_api("ticker", "GET", {{"symbol", "btc_cny"}});
+		api_t userinfo_api("userinfo", "POST");
 
 		command_queue_t q;
 
@@ -46,7 +30,9 @@ int main(int argc, char** argv)
 
 		executor_t executor(q);
 
-		timer_t timer(service, 100, [&]()
+		int peroid = 100;
+
+		timer_t timer(service, peroid, [&]()
 		{
 			executor_status_t status = executor.execute();
 

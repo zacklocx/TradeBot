@@ -5,7 +5,7 @@
 
 #include "utils.h"
 
-api_t::param_type api_t::prepare() const
+api_t::param_type api_t::sign() const
 {
 	static std::string api_key = "91a440cb-d0c2-4dd6-924e-320d2a95a543";
 	static std::string secret_key = "8AF27D70C7D51568ADC74FA0CBF707F0";
@@ -39,9 +39,14 @@ api_t::param_type api_t::prepare() const
 	return ret;
 }
 
+std::string api_t::name_to_url(const std::string& name)
+{
+	return "https://www.okcoin.cn/api/v1/" + name + ".do";
+}
+
 std::ostream& operator<<(std::ostream& out, const api_t& api)
 {
-	out << "url: " << api.url() << "\n";
+	out << "name: " << api.name() << "\n";
 	out << "method: " << api.method() << "\n";
 
 	out << "[param]";
