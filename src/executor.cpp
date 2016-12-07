@@ -5,12 +5,12 @@
 
 executor_t::executor_t(command_queue_t& queue) : halt_(false), busy_(false), queue_(queue)
 {
-	conn_command_handled = sig_command_handled.connect(boost::bind(&executor_t::on_command_handled, this, _1, _2));
+	conn_api_handled = sig_api_handled.connect(boost::bind(&executor_t::on_api_handled, this, _1, _2, _3));
 }
 
 executor_t::~executor_t()
 {
-	conn_command_handled.disconnect();
+	conn_api_handled.disconnect();
 }
 
 executor_status_t executor_t::execute()
@@ -43,7 +43,7 @@ executor_status_t executor_t::execute()
 	return ret;
 }
 
-void executor_t::on_command_handled(bool status, const Json::Value& json)
+void executor_t::on_api_handled(bool status, const api_t& api, const Json::Value& json)
 {
 	if(!status)
 	{

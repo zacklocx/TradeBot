@@ -11,6 +11,7 @@
 #include "timer.h"
 #include "client.h"
 #include "executor.h"
+#include "analyzer.h"
 
 int main(int argc, char** argv)
 {
@@ -20,15 +21,16 @@ int main(int argc, char** argv)
 
 		client_t client(service);
 
-		api_t ticker_api("ticker", "GET", {{"symbol", "btc_cny"}});
 		api_t userinfo_api("userinfo", "POST");
+		api_t ticker_api("ticker", "GET", {{"symbol", "btc_cny"}});
 
 		command_queue_t queue;
 
-		queue.push(client.set(-1).set(ticker_api).set(client));
 		queue.push(client.set(userinfo_api).set(client));
+		queue.push(client.set(ticker_api).set(client));
 
 		executor_t executor(queue);
+		analyzer_t analyzer(client, queue);
 
 		int peroid = 100;
 

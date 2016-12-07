@@ -27,9 +27,9 @@ private:
 	bool halt_, busy_;
 	command_queue_t& queue_;
 
-	boost::signals2::connection conn_command_handled;
+	boost::signals2::connection conn_api_handled;
 
-	void on_command_handled(bool status, const Json::Value& json);
+	void on_api_handled(bool status, const api_t& api, const Json::Value& json);
 };
 
 #endif /* EXECUTOR_INCLUDED */
