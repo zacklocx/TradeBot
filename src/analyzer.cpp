@@ -3,6 +3,10 @@
 
 #include <boost/bind.hpp>
 
+#include "dump.h"
+#include "utils.h"
+#include "account.h"
+
 analyzer_t::analyzer_t(client_t& client, command_queue_t& queue) : client_(client), queue_(queue)
 {
 	conn_api_handled = sig_api_handled.connect(1, boost::bind(&analyzer_t::on_api_handled, this, _1, _2, _3));
@@ -15,10 +19,41 @@ analyzer_t::~analyzer_t()
 
 void analyzer_t::on_api_handled(bool status, const api_t& api, const Json::Value& json)
 {
-	if(!status)
+	if(!status || json.isNull())
 	{
 		return;
 	}
 
-	queue_.push(client_.set(api).set(client_));
+	std::string name = api.name();
+
+	if("userinfo" == name)
+	{
+		bool result = jtob(json, "result");
+
+		if(!result)
+		{
+			queue_.push(client_.set(api).set(client_));
+		}
+		else
+		{
+			double cny = jtod(json, "info.funds.free.cny");
+			double btc = jtod(json, "info.funds.free.btc");
+
+			LLOG() << "cny: " << cny;
+			LLOG() << "btc: " << btc;
+		}
+	}
+	else if("ticker" == name)
+	{
+		uint64_t ts = jtou64(json, "date");
+
+		double low = jtod(json, "ticker.low");
+		double high = jtod(json, "ticker.high");
+		double last = jtod(json, "ticker.last");
+
+		LLOG() << "ts: " << ts;
+		LLOG() << "low: " << low;
+		LLOG() << "high: " << high;
+		LLOG() << "last: " << last;
+	}
 }

@@ -2,7 +2,9 @@
 #include "utils.h"
 
 #include <chrono>
+#include <vector>
 #include <sstream>
+#include <iostream>
 
 #include <openssl/md5.h>
 
@@ -60,4 +62,195 @@ void dump_json(const Json::Value& json, const std::string& tag /* = "" */)
 {
 	dump_helper_t _(tag);
 	LLOG() << json.toStyledString();
+}
+
+Json::Value query_json(const Json::Value& json, const std::string& query)
+{
+	std::string s;
+	std::vector<std::string> sv;
+	std::istringstream ss(query);
+
+	while(std::getline(ss, s, '.'))
+	{
+		sv.push_back(s);
+	}
+
+	const Json::Value* ret = &json;
+
+	for(const auto& it : sv)
+	{
+		if(ret->isArray())
+		{
+			ret = &(*ret)[std::stoi(it)];
+		}
+		else
+		{
+			ret = &(*ret)[it];
+		}
+
+		if(ret->isNull())
+		{
+			break;
+		}
+	}
+
+	return *ret;
+}
+
+bool jtob(const Json::Value& json, const std::string& query /* = "" */)
+{
+	bool ret = false;
+
+	Json::Value _;
+	const Json::Value* j = (query != "")? &(_ = query_json(json, query)) : &json;
+
+	if(j->isBool())
+	{
+		ret = j->asBool();
+	}
+	else if(j->isIntegral())
+	{
+		ret = j->asInt() != 0;
+	}
+
+	return ret;
+}
+
+std::string jtos(const Json::Value& json, const std::string& query /* = "" */)
+{
+	Json::Value _;
+	const Json::Value* j = (query != "")? &(_ = query_json(json, query)) : &json;
+
+	if(j->isString())
+	{
+		return j->asString();
+	}
+	else if(j->isInt())
+	{
+		return std::to_string(j->asInt64());
+	}
+	else if(j->isUInt())
+	{
+		return std::to_string(j->asUInt64());
+	}
+	else if(j->isDouble())
+	{
+		return std::to_string(j->asDouble());
+	}
+
+	return "";
+}
+
+int jtoi(const Json::Value& json, const std::string& query /* = "" */)
+{
+	int ret = 0;
+
+	Json::Value _;
+	const Json::Value* j = (query != "")? &(_ = query_json(json, query)) : &json;
+
+	if(j->isString())
+	{
+		ret = std::stoi(j->asString());
+	}
+	else if(j->isInt())
+	{
+		ret = j->asInt();
+	}
+
+	return ret;
+}
+
+unsigned int jtou(const Json::Value& json, const std::string& query /* = "" */)
+{
+	unsigned int ret = 0;
+
+	Json::Value _;
+	const Json::Value* j = (query != "")? &(_ = query_json(json, query)) : &json;
+
+	if(j->isString())
+	{
+		ret = std::stoul(j->asString());
+	}
+	else if(j->isUInt())
+	{
+		ret = j->asUInt();
+	}
+
+	return ret;
+}
+
+int64_t jtoi64(const Json::Value& json, const std::string& query /* = "" */)
+{
+	int64_t ret = 0;
+
+	Json::Value _;
+	const Json::Value* j = (query != "")? &(_ = query_json(json, query)) : &json;
+
+	if(j->isString())
+	{
+		ret = std::stoll(j->asString());
+	}
+	else if(j->isInt())
+	{
+		ret = j->asInt64();
+	}
+
+	return ret;
+}
+
+uint64_t jtou64(const Json::Value& json, const std::string& query /* = "" */)
+{
+	uint64_t ret = 0;
+
+	Json::Value _;
+	const Json::Value* j = (query != "")? &(_ = query_json(json, query)) : &json;
+
+	if(j->isString())
+	{
+		ret = std::stoull(j->asString());
+	}
+	else if(j->isUInt())
+	{
+		ret = j->asUInt64();
+	}
+
+	return ret;
+}
+
+float jtof(const Json::Value& json, const std::string& query /* = "" */)
+{
+	float ret = 0.0f;
+
+	Json::Value _;
+	const Json::Value* j = (query != "")? &(_ = query_json(json, query)) : &json;
+
+	if(j->isString())
+	{
+		ret = std::stof(j->asString());
+	}
+	else if(j->isDouble())
+	{
+		ret = j->asFloat();
+	}
+
+	return ret;
+}
+
+double jtod(const Json::Value& json, const std::string& query /* = "" */)
+{
+	double ret = 0.0;
+
+	Json::Value _;
+	const Json::Value* j = (query != "")? &(_ = query_json(json, query)) : &json;
+
+	if(j->isString())
+	{
+		ret = std::stod(j->asString());
+	}
+	else if(j->isDouble())
+	{
+		ret = j->asDouble();
+	}
+
+	return ret;
 }
