@@ -23,12 +23,12 @@ int main(int argc, char** argv)
 		api_t ticker_api("ticker", "GET", {{"symbol", "btc_cny"}});
 		api_t userinfo_api("userinfo", "POST");
 
-		command_queue_t q;
+		command_queue_t queue;
 
-		q.push(client.set(-1).set(ticker_api).set(client));
-		q.push(client.set(userinfo_api).set(client));
+		queue.push(client.set(-1).set(ticker_api).set(client));
+		queue.push(client.set(userinfo_api).set(client));
 
-		executor_t executor(q);
+		executor_t executor(queue);
 
 		int peroid = 100;
 
@@ -36,7 +36,9 @@ int main(int argc, char** argv)
 		{
 			executor_status_t status = executor.execute();
 
-			if(executor_status_t::halt == status || executor_status_t::empty == status)
+			if(executor_status_t::invalid == status ||
+				executor_status_t::halt == status ||
+				executor_status_t::empty == status)
 			{
 				timer.stop();
 			}

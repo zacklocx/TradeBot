@@ -106,12 +106,9 @@ void client_t::operator()(bool status, const Json::Value& json)
 	if(status)
 	{
 		dump_json(json, api_.url());
-		sig_command_finish(json);
 	}
-	else
-	{
-		sig_command_fail(json);
-	}
+
+	sig_command_handled(status, json);
 }
 
 void client_t::operator()(const boost::system::error_code& ec)
