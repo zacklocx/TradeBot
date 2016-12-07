@@ -9,8 +9,18 @@
 #include "utils.h"
 #include "signals.h"
 
+client_t::client_t(boost::asio::io_service& service) :
+	stream_(std::make_shared<avhttp::http_stream>(std::ref(service))),
+	priority_(0)
+{
+	data_ = std::make_shared<std::string>();
+	buffer_ = std::make_shared<std::array<char, BUFFER_SIZE>>();
+}
+
 bool client_t::call(const api_t& api, Json::Value& json)
 {
+	*data_ = "";
+
 	api_ = api;
 
 	bool status = false;
@@ -66,6 +76,8 @@ bool client_t::call(const api_t& api, Json::Value& json)
 
 void client_t::async_call(const api_t& api, handler_type handler)
 {
+	*data_ = "";
+
 	api_ = api;
 	handler_ = handler;
 
