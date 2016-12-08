@@ -10,8 +10,9 @@
 #include "dump.h"
 #include "timer.h"
 #include "client.h"
-#include "executor.h"
 #include "analyzer.h"
+#include "executor.h"
+#include "generator.h"
 
 int main(int argc, char** argv)
 {
@@ -21,16 +22,21 @@ int main(int argc, char** argv)
 
 		client_t client(service);
 
-		api_t userinfo_api("userinfo", "POST");
-		api_t ticker_api("ticker", "GET", {{"symbol", "btc_cny"}});
-
 		command_queue_t queue;
 
-		queue.push(client.set(userinfo_api).set(client));
-		queue.push(client.set(ticker_api).set(client));
-
+		analyzer_t analyzer;
 		executor_t executor(queue);
-		analyzer_t analyzer(client, queue);
+		generator_t generator(client, queue);
+
+		api_t userinfo_api("userinfo", "POST");
+		api_t ticker_api("ticker", "GET", {{"symbol", "btc_cny"}});
+		api_t kline_api("kline", "GET", {{"symbol", "btc_cny"}, {"type", "1min"}, {"size", "100"}});
+		api_t depth_api("depth", "GET", {{"symbol", "btc_cny"}, {"size", "100"}, {"merge", "0.1"}});
+
+		generator.generate(userinfo_api);
+		generator.generate(ticker_api);
+		generator.generate(kline_api);
+		generator.generate(depth_api);
 
 		int peroid = 100;
 

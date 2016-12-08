@@ -1,12 +1,14 @@
 
 #include "analyzer.h"
 
+#include <string>
+
 #include <boost/bind.hpp>
 
 #include "dump.h"
 #include "utils.h"
 
-analyzer_t::analyzer_t(client_t& client, command_queue_t& queue) : client_(client), queue_(queue)
+analyzer_t::analyzer_t()
 {
 	conn_api_handled = sig_api_handled.connect(1, boost::bind(&analyzer_t::on_api_handled, this, _1, _2, _3));
 }
@@ -31,7 +33,7 @@ void analyzer_t::on_api_handled(bool status, const api_t& api, const Json::Value
 
 		if(!result)
 		{
-			queue_.push(client_.set(api).set(client_));
+			sig_api_created(api, 0);
 		}
 		else
 		{
