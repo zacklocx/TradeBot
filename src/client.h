@@ -20,8 +20,8 @@ public:
 
 	client_t(boost::asio::io_service& service);
 
-	client_t& set(int priority) { priority_ = priority; return *this; }
 	client_t& set(const api_t& api) { api_ = api; return *this; }
+	client_t& set(int priority) { priority_ = priority; return *this; }
 	client_t& set(handler_type handler) { handler_ = handler; return *this; }
 
 	int priority() const { return priority_; }
@@ -45,9 +45,11 @@ private:
 	std::shared_ptr<std::string> data_;
 	std::shared_ptr<std::array<char, BUFFER_SIZE>> buffer_;
 
-	int priority_;
 	api_t api_;
+	int priority_;
 	handler_type handler_;
+
+	void clean();
 };
 
 inline int priority(const client_t& client) { return client.priority(); }

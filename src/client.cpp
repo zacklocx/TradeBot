@@ -19,11 +19,9 @@ client_t::client_t(boost::asio::io_service& service) :
 
 bool client_t::call(const api_t& api, Json::Value& json)
 {
-	*data_ = "";
+	clean();
 
 	api_ = api;
-
-	bool status = false;
 
 	boost::system::error_code ec;
 
@@ -52,31 +50,30 @@ bool client_t::call(const api_t& api, Json::Value& json)
 		std::copy(buffer_->begin(), buffer_->begin() + bytes_transferred, std::back_inserter(*data_));
 	}
 
-	stream_->request_options(avhttp::request_opts());
 	stream_->close();
+
+	bool status = false;
 
 	if(boost::asio::error::eof == ec ||
 		(boost::asio::error::get_ssl_category() == ec.category() &&
 			ERR_PACK(ERR_LIB_SSL, 0, SSL_R_SHORT_READ) == ec.value()))
 	{
+		status = true;
+
 		Json::Reader reader;
 		reader.parse(*data_, json);
-
-		status = true;
 	}
 	else
 	{
 		LLOG() << "client error: " << ec.message();
 	}
 
-	*data_ = "";
-
 	return status;
 }
 
 void client_t::async_call(const api_t& api, handler_type handler)
 {
-	*data_ = "";
+	clean();
 
 	api_ = api;
 	handler_ = handler;
@@ -119,12 +116,9 @@ void client_t::operator()(const boost::system::error_code& ec)
 	}
 	else
 	{
-		stream_->request_options(avhttp::request_opts());
-		stream_->close();
-
-		*data_ = "";
-
 		LLOG() << "client error: " << ec.message();
+
+		stream_->close();
 
 		if(handler_)
 		{
@@ -137,37 +131,55 @@ void client_t::operator()(const boost::system::error_code& ec, int bytes_transfe
 {
 	if(!ec)
 	{
-		std::copy(buffer_->begin(), buffer_->begin() + bytes_transferred, std::back_inserter(*data_));
-		stream_->async_read_some(boost::asio::buffer(*buffer_), *this);
+		if(bytes_transferred > 0)
+		{
+			std::copy(buffer_->begin(), buffer_->begin() + bytes_transferred, std::back_inserter(*data_));
+			stream_->async_read_some(boost::asio::buffer(*buffer_), *this);
+		}
+		else
+		{
+			stream_->close();
+
+			if(handler_)
+			{
+				handler_(true, Json::Value());
+			}
+		}
 	}
 	else
 	{
-		stream_->request_options(avhttp::request_opts());
 		stream_->close();
+
+		bool status = false;
+
+		if(boost::asio::error::eof == ec ||
+			(boost::asio::error::get_ssl_category() == ec.category() &&
+				ERR_PACK(ERR_LIB_SSL, 0, SSL_R_SHORT_READ) == ec.value()))
+		{
+			status = true;
+		}
+		else
+		{
+			LLOG() << "client error: " << ec.message();
+		}
 
 		if(handler_)
 		{
-			bool status = false;
-
 			Json::Value json;
 
-			if(boost::asio::error::eof == ec ||
-				(boost::asio::error::get_ssl_category() == ec.category() &&
-					ERR_PACK(ERR_LIB_SSL, 0, SSL_R_SHORT_READ) == ec.value()))
+			if(status)
 			{
 				Json::Reader reader;
 				reader.parse(*data_, json);
-
-				status = true;
-			}
-			else
-			{
-				LLOG() << "client error: " << ec.message();
 			}
 
 			handler_(status, json);
 		}
-
-		*data_ = "";
 	}
+}
+
+void client_t::clean()
+{
+	stream_->request_options(avhttp::request_opts());
+	*data_ = "";
 }
