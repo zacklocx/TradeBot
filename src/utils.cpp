@@ -101,16 +101,15 @@ bool jtob(const Json::Value& json, const std::string& query /* = "" */)
 {
 	bool ret = false;
 
-	Json::Value _;
-	const Json::Value* j = (query != "")? &(_ = query_json(json, query)) : &json;
+	Json::Value j = query_json(json, query);
 
-	if(j->isBool())
+	if(j.isBool())
 	{
-		ret = j->asBool();
+		ret = j.asBool();
 	}
-	else if(j->isIntegral())
+	else if(j.isIntegral())
 	{
-		ret = j->asInt() != 0;
+		ret = j.asInt() != 0;
 	}
 
 	return ret;
@@ -118,43 +117,43 @@ bool jtob(const Json::Value& json, const std::string& query /* = "" */)
 
 std::string jtos(const Json::Value& json, const std::string& query /* = "" */)
 {
-	Json::Value _;
-	const Json::Value* j = (query != "")? &(_ = query_json(json, query)) : &json;
+	std::string ret = "";
 
-	if(j->isString())
+	Json::Value j = query_json(json, query);
+
+	if(j.isString())
 	{
-		return j->asString();
+		ret = j.asString();
 	}
-	else if(j->isInt())
+	else if(j.isInt())
 	{
-		return std::to_string(j->asInt64());
+		ret = std::to_string(j.asInt64());
 	}
-	else if(j->isUInt())
+	else if(j.isUInt())
 	{
-		return std::to_string(j->asUInt64());
+		ret = std::to_string(j.asUInt64());
 	}
-	else if(j->isDouble())
+	else if(j.isDouble())
 	{
-		return std::to_string(j->asDouble());
+		ret = std::to_string(j.asDouble());
 	}
 
-	return "";
+	return ret;
 }
 
 int jtoi(const Json::Value& json, const std::string& query /* = "" */)
 {
 	int ret = 0;
 
-	Json::Value _;
-	const Json::Value* j = (query != "")? &(_ = query_json(json, query)) : &json;
+	Json::Value j = query_json(json, query);
 
-	if(j->isString())
+	if(j.isString())
 	{
-		ret = std::stoi(j->asString());
+		ret = std::stoi(j.asString());
 	}
-	else if(j->isInt())
+	else if(j.isInt())
 	{
-		ret = j->asInt();
+		ret = j.asInt();
 	}
 
 	return ret;
@@ -164,16 +163,15 @@ unsigned int jtou(const Json::Value& json, const std::string& query /* = "" */)
 {
 	unsigned int ret = 0;
 
-	Json::Value _;
-	const Json::Value* j = (query != "")? &(_ = query_json(json, query)) : &json;
+	Json::Value j = query_json(json, query);
 
-	if(j->isString())
+	if(j.isString())
 	{
-		ret = std::stoul(j->asString());
+		ret = std::stoul(j.asString());
 	}
-	else if(j->isUInt())
+	else if(j.isUInt())
 	{
-		ret = j->asUInt();
+		ret = j.asUInt();
 	}
 
 	return ret;
@@ -183,16 +181,15 @@ int64_t jtoi64(const Json::Value& json, const std::string& query /* = "" */)
 {
 	int64_t ret = 0;
 
-	Json::Value _;
-	const Json::Value* j = (query != "")? &(_ = query_json(json, query)) : &json;
+	Json::Value j = query_json(json, query);
 
-	if(j->isString())
+	if(j.isString())
 	{
-		ret = std::stoll(j->asString());
+		ret = std::stoll(j.asString());
 	}
-	else if(j->isInt())
+	else if(j.isInt())
 	{
-		ret = j->asInt64();
+		ret = j.asInt64();
 	}
 
 	return ret;
@@ -202,16 +199,15 @@ uint64_t jtou64(const Json::Value& json, const std::string& query /* = "" */)
 {
 	uint64_t ret = 0;
 
-	Json::Value _;
-	const Json::Value* j = (query != "")? &(_ = query_json(json, query)) : &json;
+	Json::Value j = query_json(json, query);
 
-	if(j->isString())
+	if(j.isString())
 	{
-		ret = std::stoull(j->asString());
+		ret = std::stoull(j.asString());
 	}
-	else if(j->isUInt())
+	else if(j.isUInt())
 	{
-		ret = j->asUInt64();
+		ret = j.asUInt64();
 	}
 
 	return ret;
@@ -221,16 +217,15 @@ float jtof(const Json::Value& json, const std::string& query /* = "" */)
 {
 	float ret = 0.0f;
 
-	Json::Value _;
-	const Json::Value* j = (query != "")? &(_ = query_json(json, query)) : &json;
+	Json::Value j = query_json(json, query);
 
-	if(j->isString())
+	if(j.isString())
 	{
-		ret = std::stof(j->asString());
+		ret = std::stof(j.asString());
 	}
-	else if(j->isDouble())
+	else if(j.isDouble())
 	{
-		ret = j->asFloat();
+		ret = j.asFloat();
 	}
 
 	return ret;
@@ -240,16 +235,15 @@ double jtod(const Json::Value& json, const std::string& query /* = "" */)
 {
 	double ret = 0.0;
 
-	Json::Value _;
-	const Json::Value* j = (query != "")? &(_ = query_json(json, query)) : &json;
+	Json::Value j = query_json(json, query);
 
-	if(j->isString())
+	if(j.isString())
 	{
-		ret = std::stod(j->asString());
+		ret = std::stod(j.asString());
 	}
-	else if(j->isDouble())
+	else if(j.isDouble())
 	{
-		ret = j->asDouble();
+		ret = j.asDouble();
 	}
 
 	return ret;

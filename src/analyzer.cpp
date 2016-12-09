@@ -24,5 +24,7 @@ void analyzer_t::on_api_handled(bool status, const api_t& api, const Json::Value
 		return;
 	}
 
-	dump_json(json, api.name());
+	std::string name = api.name();
+
+	dump_json(json, name);
 }
