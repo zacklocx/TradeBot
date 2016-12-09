@@ -18,14 +18,20 @@ find_package(zlib REQUIRED)
 find_package(Boost COMPONENTS filesystem system REQUIRED)
 find_package(openssl REQUIRED)
 find_package(jsoncpp REQUIRED)
+find_package(sqlite3 REQUIRED)
+find_package(soci REQUIRED)
 
 set(EXTRA_LIBS ${EXTRA_LIBS} ${ZLIB_LIBRARIES})
 set(EXTRA_LIBS ${EXTRA_LIBS} ${Boost_LIBRARIES})
 set(EXTRA_LIBS ${EXTRA_LIBS} ${OPENSSL_LIBRARIES})
 set(EXTRA_LIBS ${EXTRA_LIBS} ${JSONCPP_LIBRARIES})
+set(EXTRA_LIBS ${EXTRA_LIBS} ${SQLITE3_LIBRARIES})
+set(EXTRA_LIBS ${EXTRA_LIBS} ${SOCI_LIBRARIES})
 
 include_directories($ENV{OPENSSL_ROOT_DIR}/include)
 link_directories($ENV{OPENSSL_ROOT_DIR}/lib)
+
+include_directories(${SOCI_INCLUDE_DIR})
 
 include_directories(${CMAKE_SOURCE_DIR}/third_party/avhttp)
 
