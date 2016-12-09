@@ -3,6 +3,7 @@
 #define ORDER_INCLUDED
 
 #include <cstdint>
+
 #include <iostream>
 
 enum class order_type_t

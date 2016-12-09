@@ -6,7 +6,6 @@
 #include <exception>
 
 #include "dump.h"
-#include "utils.h"
 #include "signals.h"
 
 client_t::client_t(boost::asio::io_service& service) :
@@ -71,12 +70,11 @@ bool client_t::call(const api_t& api, Json::Value& json)
 	return status;
 }
 
-void client_t::async_call(const api_t& api, handler_type handler)
+void client_t::async_call(const api_t& api)
 {
 	clean();
 
 	api_ = api;
-	handler_ = handler;
 
 	std::string method = api_.method();
 
@@ -98,16 +96,6 @@ void client_t::async_call(const api_t& api, handler_type handler)
 	}
 }
 
-void client_t::operator()(bool status, const Json::Value& json)
-{
-	if(status)
-	{
-		dump_json(json, api_.url());
-	}
-
-	sig_api_handled(status, api_, json);
-}
-
 void client_t::operator()(const boost::system::error_code& ec)
 {
 	if(!ec)
@@ -119,11 +107,7 @@ void client_t::operator()(const boost::system::error_code& ec)
 		LLOG() << "client error: " << ec.message();
 
 		stream_->close();
-
-		if(handler_)
-		{
-			handler_(false, Json::Value());
-		}
+		sig_api_handled(false, api_, Json::Value::null);
 	}
 }
 
@@ -139,11 +123,7 @@ void client_t::operator()(const boost::system::error_code& ec, int bytes_transfe
 		else
 		{
 			stream_->close();
-
-			if(handler_)
-			{
-				handler_(true, Json::Value());
-			}
+			sig_api_handled(true, api_, Json::Value::null);
 		}
 	}
 	else
@@ -151,35 +131,29 @@ void client_t::operator()(const boost::system::error_code& ec, int bytes_transfe
 		stream_->close();
 
 		bool status = false;
+		Json::Value json = Json::Value::null;
 
 		if(boost::asio::error::eof == ec ||
 			(boost::asio::error::get_ssl_category() == ec.category() &&
 				ERR_PACK(ERR_LIB_SSL, 0, SSL_R_SHORT_READ) == ec.value()))
 		{
 			status = true;
+
+			Json::Reader reader;
+			reader.parse(*data_, json);
 		}
 		else
 		{
 			LLOG() << "client error: " << ec.message();
 		}
 
-		if(handler_)
-		{
-			Json::Value json;
-
-			if(status)
-			{
-				Json::Reader reader;
-				reader.parse(*data_, json);
-			}
-
-			handler_(status, json);
-		}
+		sig_api_handled(status, api_, json);
 	}
 }
 
 void client_t::clean()
 {
 	stream_->request_options(avhttp::request_opts());
+
 	*data_ = "";
 }

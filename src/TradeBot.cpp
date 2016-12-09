@@ -28,15 +28,15 @@ int main(int argc, char** argv)
 		executor_t executor(queue);
 		generator_t generator(client, queue);
 
-		api_t userinfo_api("userinfo", "POST");
-		api_t ticker_api("ticker", "GET", {{"symbol", "btc_cny"}});
 		api_t kline_api("kline", "GET", {{"symbol", "btc_cny"}, {"type", "1min"}, {"size", "100"}});
 		api_t depth_api("depth", "GET", {{"symbol", "btc_cny"}, {"size", "100"}, {"merge", "0.1"}});
+		api_t ticker_api("ticker", "GET", {{"symbol", "btc_cny"}});
+		api_t userinfo_api("userinfo", "POST");
 
-		generator.generate(userinfo_api);
-		generator.generate(ticker_api);
 		generator.generate(kline_api);
 		generator.generate(depth_api);
+		generator.generate(ticker_api);
+		generator.generate(userinfo_api);
 
 		int peroid = 100;
 

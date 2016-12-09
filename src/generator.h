@@ -2,7 +2,6 @@
 #ifndef GENERATOR_INCLUDED
 #define GENERATOR_INCLUDED
 
-#include "api.h"
 #include "client.h"
 #include "command.h"
 #include "signals.h"
