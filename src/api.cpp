@@ -15,8 +15,6 @@ api_t::param_type api_t::sign() const
 		return param_;
 	}
 
-	param_type ret(param_);
-
 	std::ostringstream param_stream;
 
 	std::string separator = "";
@@ -32,6 +30,8 @@ api_t::param_type api_t::sign() const
 	param_stream << separator << "secret_key=" << secret_key;
 
 	std::string sign = md5(param_stream.str());
+
+	param_type ret(param_);
 
 	ret["api_key"] = api_key;
 	ret["sign"] = sign;
