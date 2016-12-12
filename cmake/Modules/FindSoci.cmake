@@ -1,93 +1,34 @@
-###############################################################################
-# CMake module to search for SOCI library
-#
-# WARNING: This module is experimental work in progress.
-#
-# This module defines:
-#  SOCI_INCLUDE_DIRS        = include dirs to be used when using the soci library
-#  SOCI_LIBRARIES           = full path to the soci library
-#  SOCI_LIBRARIES_DIR       = full path to directory containing soci library
-#  SOCI_VERSION             = the soci version found (not yet. soci does not provide that info.)
-#  SOCI_FOUND               = true if soci was found
-#
-# This module respects:
-#  LIB_SUFFIX         = (64|32|"") Specifies the suffix for the lib directory
-#
-# For each component you specify in find_package(), the following variables are set.
-#
-#  SOCI_${COMPONENT}_PLUGIN = full path to the soci plugin
-#  SOCI_${COMPONENT}_FOUND
-#
-# Copyright (c) 2011 Michael Jansen <info@michael-jansen.biz>
-#
-# Redistribution and use is allowed according to the terms of the BSD license.
-# For details see the accompanying COPYING-CMAKE-SCRIPTS file.
-#
-###############################################################################
-#
-### Global Configuration Section
-#
-SET(_SOCI_ALL_PLUGINS    mysql odbc postgresql sqlite3)
-SET(_SOCI_REQUIRED_VARS  SOCI_INCLUDE_DIR SOCI_LIBRARIES)
+# - Try to find soci
+# Once done this will define
+#  SOCI_FOUND - System has soci
+#  SOCI_INCLUDE_DIRS - The soci include directories
+#  SOCI_LIBRARIES - The libraries needed to use soci
+#  SOCI_DEFINITIONS - Compiler switches required for using soci
 
-#
-### FIRST STEP: Find the soci headers.
-#
-FIND_PATH(
-    SOCI_INCLUDE_DIR soci.h
-    PATHS "/usr/local"
-    PATH_SUFFIXES "soci"
-    DOC "soci (http://soci.sourceforge.net) include directory")
-MARK_AS_ADVANCED(SOCI_INCLUDE_DIR)
+find_package(PkgConfig)
+pkg_check_modules(PC_SOCI QUIET soci)
+set(SOCI_DEFINITIONS ${PC_SOCI_CFLAGS_OTHER})
 
-SET(SOCI_INCLUDE_DIRS ${SOCI_INCLUDE_DIR})
+find_path(SOCI_INCLUDE_DIR soci.h
+          HINTS ${PC_SOCI_INCLUDEDIR} ${PC_SOCI_INCLUDE_DIRS}
+          PATH_SUFFIXES "soci")
 
-#
-### SECOND STEP: Find the soci core library. Respect LIB_SUFFIX
-#
-if(DEFINED LIB_SUFFIX)
-    set(LIB_SUFFIXES lib${LIB_SUFFIX})
-else()
-    set(LIB_SUFFIXES lib lib32 lib64)
-endif()
+find_library(SOCI_LIBRARY NAMES soci_core libsoci_core
+             HINTS ${PC_SOCI_LIBDIR} ${PC_SOCI_LIBRARY_DIRS})
 
-FIND_LIBRARY(
-    SOCI_LIBRARIES
-    NAMES soci_core
-    HINTS ${SOCI_INCLUDE_DIR}/..
-    PATH_SUFFIXES ${LIB_SUFFIXES})
-MARK_AS_ADVANCED(SOCI_LIBRARIES)
+find_library(SOCI_SQLITE3_LIBRARY NAMES soci_sqlite3 libsoci_sqlite3
+             HINTS ${PC_SOCI_LIBDIR} ${PC_SOCI_LIBRARY_DIRS})
 
-GET_FILENAME_COMPONENT(SOCI_LIBRARIES_DIR ${SOCI_LIBRARIES} PATH)
-MARK_AS_ADVANCED(SOCI_LIBRARIES_DIR)
-
-#
-### ADHERE TO STANDARDS
-#
 include(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(soci DEFAULT_MSG ${_SOCI_REQUIRED_VARS})
+# handle the QUIETLY and REQUIRED arguments and set SOCI_FOUND to TRUE
+# if all listed variables are TRUE
+find_package_handle_standard_args(soci DEFAULT_MSG
+                                  SOCI_LIBRARY SOCI_INCLUDE_DIR)
 
-#
-### THIRD STEP: Find all installed plugins if the library was found
-#
-IF(SOCI_INCLUDE_DIR AND SOCI_LIBRARIES)
+find_package_handle_standard_args(soci_sqlite3 DEFAULT_MSG
+                                  SOCI_SQLITE3_LIBRARY SOCI_INCLUDE_DIR)
 
-    FOREACH(plugin IN LISTS _SOCI_ALL_PLUGINS)
+mark_as_advanced(SOCI_INCLUDE_DIR SOCI_LIBRARY SOCI_SQLITE3_LIBRARY)
 
-        FIND_LIBRARY(
-            SOCI_${plugin}_PLUGIN
-            NAMES soci_${plugin}
-            HINTS ${SOCI_INCLUDE_DIR}/..
-            PATH_SUFFIXES ${LIB_SUFFIXES})
-        MARK_AS_ADVANCED(SOCI_${plugin}_PLUGIN)
-
-        IF(SOCI_${plugin}_PLUGIN)
-            SET(SOCI_${plugin}_FOUND True)
-            SET(SOCI_LIBRARIES ${SOCI_LIBRARIES} ${SOCI_${plugin}_PLUGIN})
-            message("--   Found soci ${plugin} plugin")
-        ELSE()
-            SET(SOCI_${plugin}_FOUND False)
-        ENDIF()
-
-    ENDFOREACH()
-ENDIF()
+set(SOCI_LIBRARIES ${SOCI_LIBRARY} ${SOCI_SQLITE3_LIBRARY})
+set(SOCI_INCLUDE_DIRS ${SOCI_INCLUDE_DIR})
