@@ -6,6 +6,10 @@
 #include <cstdint>
 
 #include <string>
+#include <iostream>
+
+#include <boost/tuple/tuple.hpp>
+#include <boost/fusion/include/for_each.hpp>
 
 #include <json/json.h>
 
@@ -24,5 +28,13 @@ int64_t jtoi64(const Json::Value& json, const std::string& query = "");
 uint64_t jtou64(const Json::Value& json, const std::string& query = "");
 float jtof(const Json::Value& json, const std::string& query = "");
 double jtod(const Json::Value& json, const std::string& query = "");
+
+template<typename T>
+void dump_tuple(const T& t)
+{
+	std::cout << "(";
+	boost::fusion::for_each(t, [](auto const& it) { std::cout << it << ' '; });
+	std::cout << "\b)\n";
+}
 
 #endif // UTILS_INCLUDED

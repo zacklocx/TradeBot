@@ -61,7 +61,7 @@ std::string urlencode(const std::string &s)
 void dump_json(const Json::Value& json, const std::string& tag /* = "" */)
 {
 	dump_helper_t _(tag);
-	LLOG() << json.toStyledString();
+	std::cout << json.toStyledString();
 }
 
 Json::Value query_json(const Json::Value& json, const std::string& query)
