@@ -8,6 +8,9 @@
 
 #include "signals.h"
 
+bool show_test_window = true;
+bool show_another_window = false;
+
 ////////////////////////////////////////////////////////////////////////////////
 
 static int cached_width = 0;
@@ -46,11 +49,39 @@ static void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	imgui_glut_newframe();
+	imgui_glut_newframe(cached_width, cached_height);
+
 	sig_render();
+
+	{
+        static float f = 0.0f;
+        ImGui::Text("Hello, world!");
+        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+        if (ImGui::Button("Test Window")) show_test_window ^= 1;
+        if (ImGui::Button("Another Window")) show_another_window ^= 1;
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    }
+
+    // 2. Show another simple window, this time using an explicit Begin/End pair
+    if (show_another_window)
+    {
+        ImGui::SetNextWindowSize(ImVec2(200, 100), ImGuiSetCond_FirstUseEver);
+        ImGui::Begin("Another Window", &show_another_window);
+        ImGui::Text("Hello");
+        ImGui::End();
+    }
+
+    // 3. Show the ImGui test window. Most of the sample code is in ImGui::ShowTestWindow()
+    if (show_test_window)
+    {
+        ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
+        ImGui::ShowTestWindow(&show_test_window);
+    }
+
 	ImGui::Render();
 
 	glutSwapBuffers();
+	refresh();
 }
 
 static void idle()
@@ -90,7 +121,7 @@ static void mouse_wheel(int dir, int x, int y)
 {
 	ImGuiIO& io = ImGui::GetIO();
 	io.MousePos = ImVec2(x, y);
-	io.MouseWheel = dir;
+	io.MouseWheel = -dir;
 }
 
 static void mouse_click(int button, int state, int x, int y)
@@ -172,7 +203,7 @@ int renderer_t::height()
 	return cached_height;
 }
 
-void renderer_t::start(int width /* = 0 */, int height /* = 0 */)
+void renderer_t::start(int width, int height, int bg_color)
 {
 	int argc = 1;
 	char _[] = "";
@@ -184,7 +215,7 @@ void renderer_t::start(int width /* = 0 */, int height /* = 0 */)
 	glutSetOption(GLUT_INIT_WINDOW_HEIGHT, 768);
 	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_CONTINUE_EXECUTION);
 
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH | GLUT_MULTISAMPLE);
 
 	if(width > 0 && height > 0)
 	{
@@ -205,6 +236,14 @@ void renderer_t::start(int width /* = 0 */, int height /* = 0 */)
 	glutMouseFunc(mouse_click);
 	glutPassiveMotionFunc(mouse_move);
 	glutMotionFunc(mouse_drag);
+
+	glEnable(GL_MULTISAMPLE);
+
+	double red = (bg_color / 256 / 256 % 256) / 255.0;
+	double green = (bg_color / 256 % 256) / 255.0;
+	double blue = (bg_color % 256) / 255.0;
+
+	glClearColor(red, green, blue, 1.0);
 
 	imgui_glut_init();
 

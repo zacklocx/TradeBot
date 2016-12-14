@@ -38,7 +38,7 @@ int main(int argc, char** argv)
 		generator.generate(ticker_api);
 		generator.generate(userinfo_api);
 
-		renderer_t::start(640, 480);
+		renderer_t::start(1024, 768, 0x3F3F3F);
 
 		// int peroid = 100;
 

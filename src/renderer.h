@@ -8,7 +8,7 @@ public:
 	static int width();
 	static int height();
 
-	static void start(int width = 0, int height = 0);
+	static void start(int width, int height, int bg_color);
 	static void refresh();
 	static void stop();
 };
