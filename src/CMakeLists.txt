@@ -11,6 +11,7 @@ configure_file(
 )
 
 add_definitions(-Wno-uninitialized)
+add_definitions(-Wno-deprecated-declarations)
 
 add_definitions(-DSOCI_USE_BOOST)
 add_definitions(-DAVHTTP_ENABLE_ZLIB)
@@ -23,6 +24,7 @@ find_package(openssl REQUIRED)
 find_package(jsoncpp REQUIRED)
 find_package(sqlite3 REQUIRED)
 find_package(soci REQUIRED)
+find_package(freeglut REQUIRED)
 
 set(EXTRA_LIBS ${EXTRA_LIBS} ${ZLIB_LIBRARIES})
 set(EXTRA_LIBS ${EXTRA_LIBS} ${Boost_LIBRARIES})
@@ -30,15 +32,19 @@ set(EXTRA_LIBS ${EXTRA_LIBS} ${OPENSSL_LIBRARIES})
 set(EXTRA_LIBS ${EXTRA_LIBS} ${JSONCPP_LIBRARIES})
 set(EXTRA_LIBS ${EXTRA_LIBS} ${SQLITE3_LIBRARIES})
 set(EXTRA_LIBS ${EXTRA_LIBS} ${SOCI_LIBRARIES})
+set(EXTRA_LIBS ${EXTRA_LIBS} ${FREEGLUT_LIBRARIES})
 
 include_directories($ENV{OPENSSL_ROOT_DIR}/include)
 link_directories($ENV{OPENSSL_ROOT_DIR}/lib)
 
-include_directories(${SOCI_INCLUDE_DIR})
+include_directories(${SOCI_INCLUDE_DIRS})
+include_directories(${FREEGLUT_INCLUDE_DIRS})
 
+include_directories(${CMAKE_SOURCE_DIR}/third_party/imgui)
 include_directories(${CMAKE_SOURCE_DIR}/third_party/avhttp)
 
-file(GLOB ALL_CPP *.cpp)
+file(GLOB IMGUI_CPP ${CMAKE_SOURCE_DIR}/third_party/imgui/*.cpp)
+file(GLOB TB_CPP *.cpp)
 
-add_executable(TradeBot ${ALL_CPP})
+add_executable(TradeBot ${IMGUI_CPP} ${TB_CPP})
 target_link_libraries(TradeBot ${EXTRA_LIBS})

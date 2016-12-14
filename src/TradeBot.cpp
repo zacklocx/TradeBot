@@ -9,6 +9,7 @@
 #include "dump.h"
 #include "timer.h"
 #include "client.h"
+#include "renderer.h"
 #include "analyzer.h"
 #include "executor.h"
 #include "generator.h"
@@ -37,23 +38,27 @@ int main(int argc, char** argv)
 		generator.generate(ticker_api);
 		generator.generate(userinfo_api);
 
-		int peroid = 100;
+		renderer_t::start(640, 480);
 
-		timer_t timer(service, peroid, [&]()
-		{
-			executor_status_t status = executor.execute();
+		// int peroid = 100;
 
-			if(executor_status_t::invalid == status ||
-				executor_status_t::halt == status ||
-				executor_status_t::empty == status)
-			{
-				timer.stop();
-			}
-		});
+		// timer_t timer(service, peroid, [&]()
+		// {
+		// 	executor_status_t status = executor.execute();
 
-		timer.start();
+		// 	if(executor_status_t::invalid == status ||
+		// 		executor_status_t::halt == status ||
+		// 		executor_status_t::empty == status)
+		// 	{
+		// 		timer.stop();
+		// 	}
+		// });
 
-		service.run();
+		// timer.start();
+
+		// service.run();
+
+		// renderer.start();
 	}
 	catch(std::exception& e)
 	{
