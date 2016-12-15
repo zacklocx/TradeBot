@@ -56,7 +56,9 @@ int main(int argc, char** argv)
 		timer.start();
 
 		std::thread event_thread([&] { service.run(); });
-		renderer_t::start(1024, 768, 0x3F3F3F);
+
+		renderer_t::start(1200, 800, 0xA6A6A6);
+
 		event_thread.join();
 	}
 	catch(std::exception& e)

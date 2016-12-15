@@ -5,11 +5,13 @@
 class renderer_t
 {
 public:
-	static int width();
-	static int height();
+	static int screen_width();
+	static int screen_height();
 
-	static void start(int width, int height, int bg_color);
-	static void refresh();
+	static int window_width();
+	static int window_height();
+
+	static void start(int width = 0, int height = 0, int color = 0);
 	static void stop();
 };
 

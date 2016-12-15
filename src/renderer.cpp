@@ -8,39 +8,21 @@
 
 #include "signals.h"
 
-bool show_test_window = true;
-bool show_another_window = false;
-
 ////////////////////////////////////////////////////////////////////////////////
-
-static int cached_width = 0;
-static int cached_height = 0;
-static int cached_button = -1;
-
-static void refresh()
-{
-	glutPostRedisplay();
-}
 
 static void stop()
 {
-	cached_width = cached_height = 0;
-	cached_button = -1;
-
 	imgui_glut_shutdown();
-
 	glutLeaveMainLoop();
 }
 
 static void reshape(int width, int height)
 {
-	cached_width = width;
-	cached_height = height;
+	glViewport(0, 0, width, height);
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glViewport(0, 0, cached_width, cached_height);
-	gluOrtho2D(0, cached_width, 0, cached_height);
+	gluOrtho2D(0, width, 0, height);
 
 	glMatrixMode(GL_MODELVIEW);
 }
@@ -49,43 +31,19 @@ static void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	imgui_glut_newframe(cached_width, cached_height);
+	imgui_glut_prepare(glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT));
+
+	ImGui::ShowTestWindow();
 
 	sig_render();
-
-	{
-        static float f = 0.0f;
-        ImGui::Text("Hello, world!");
-        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
-        if (ImGui::Button("Test Window")) show_test_window ^= 1;
-        if (ImGui::Button("Another Window")) show_another_window ^= 1;
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-    }
-
-    // 2. Show another simple window, this time using an explicit Begin/End pair
-    if (show_another_window)
-    {
-        ImGui::SetNextWindowSize(ImVec2(200, 100), ImGuiSetCond_FirstUseEver);
-        ImGui::Begin("Another Window", &show_another_window);
-        ImGui::Text("Hello");
-        ImGui::End();
-    }
-
-    // 3. Show the ImGui test window. Most of the sample code is in ImGui::ShowTestWindow()
-    if (show_test_window)
-    {
-        ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
-        ImGui::ShowTestWindow(&show_test_window);
-    }
-
 	ImGui::Render();
 
 	glutSwapBuffers();
-	refresh();
 }
 
 static void idle()
 {
+	display();
 }
 
 static void normal_key_down(unsigned char key, int x, int y)
@@ -98,8 +56,6 @@ static void normal_key_down(unsigned char key, int x, int y)
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		io.AddInputCharacter(key);
-
-		refresh();
 	}
 }
 
@@ -121,35 +77,20 @@ static void mouse_wheel(int dir, int x, int y)
 {
 	ImGuiIO& io = ImGui::GetIO();
 	io.MousePos = ImVec2(x, y);
-	io.MouseWheel = -dir;
+	io.MouseWheel = dir;
 }
 
 static void mouse_click(int button, int state, int x, int y)
 {
 	if(3 == button || 4 == button)
 	{
-		if(state != GLUT_UP)
+		if(GLUT_DOWN == state)
 		{
-			mouse_wheel((3 == button)? -1 : 1, x, y);
+			mouse_wheel((3 == button)? 1 : -1, x, y);
 		}
 	}
 	else
 	{
-		if(cached_button < 0)
-		{
-			if(GLUT_DOWN == state)
-			{
-				cached_button = button;
-			}
-		}
-		else if(button == cached_button)
-		{
-			if(GLUT_UP == state)
-			{
-				cached_button = -1;
-			}
-		}
-
 		ImGuiIO& io = ImGui::GetIO();
 		io.MousePos = ImVec2(x, y);
 
@@ -170,8 +111,6 @@ static void mouse_click(int button, int state, int x, int y)
 		{
 			io.MouseDown[1] = false;
 		}
-
-		refresh();
 	}
 }
 
@@ -179,44 +118,50 @@ static void mouse_move(int x, int y)
 {
 	ImGuiIO& io = ImGui::GetIO();
 	io.MousePos = ImVec2(x, y);
-
-	refresh();
 }
 
 static void mouse_drag(int x, int y)
 {
 	ImGuiIO& io = ImGui::GetIO();
 	io.MousePos = ImVec2(x, y);
-
-	refresh();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-int renderer_t::width()
+int renderer_t::screen_width()
 {
-	return cached_width;
+	return glutGet(GLUT_SCREEN_WIDTH);
 }
 
-int renderer_t::height()
+int renderer_t::screen_height()
 {
-	return cached_height;
+	return glutGet(GLUT_SCREEN_HEIGHT);
 }
 
-void renderer_t::start(int width, int height, int bg_color)
+int renderer_t::window_width()
+{
+	return glutGet(GLUT_WINDOW_WIDTH);
+}
+
+int renderer_t::window_height()
+{
+	return glutGet(GLUT_WINDOW_HEIGHT);
+}
+
+void renderer_t::start(int width /* = 0 */, int height /* = 0 */, int color /* = 0 */)
 {
 	int argc = 1;
 	char _[] = "";
 	char* argv[] = { _, 0 };
 
 	glutInit(&argc, argv);
-	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_CONTINUE_EXECUTION);
+	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
 
 	glutInitWindowSize(width, height);
 	glutCreateWindow("");
 
-	if(width <= 0 || height <= 0)
+	if(!(width > 0 && height > 0))
 	{
 		glutFullScreen();
 	}
@@ -234,20 +179,15 @@ void renderer_t::start(int width, int height, int bg_color)
 	glutPassiveMotionFunc(mouse_move);
 	glutMotionFunc(mouse_drag);
 
-	double red = (bg_color / 256 / 256 % 256) / 255.0;
-	double green = (bg_color / 256 % 256) / 255.0;
-	double blue = (bg_color % 256) / 255.0;
+	double red = (color / 65536 % 256) / 255.0;
+	double green = (color / 256 % 256) / 255.0;
+	double blue = (color % 256) / 255.0;
 
 	glClearColor(red, green, blue, 1.0);
 
 	imgui_glut_init();
 
 	glutMainLoop();
-}
-
-void renderer_t::refresh()
-{
-	::refresh();
 }
 
 void renderer_t::stop()
