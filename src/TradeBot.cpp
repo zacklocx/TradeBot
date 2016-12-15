@@ -1,4 +1,5 @@
 
+#include <thread>
 #include <exception>
 #include <initializer_list>
 
@@ -38,27 +39,25 @@ int main(int argc, char** argv)
 		generator.generate(ticker_api);
 		generator.generate(userinfo_api);
 
+		int peroid = 100;
+
+		timer_t timer(service, peroid, [&]
+		{
+			executor_status_t status = executor.execute();
+
+			if(executor_status_t::invalid == status ||
+				executor_status_t::halt == status ||
+				executor_status_t::empty == status)
+			{
+				timer.stop();
+			}
+		});
+
+		timer.start();
+
+		std::thread event_thread([&] { service.run(); });
 		renderer_t::start(1024, 768, 0x3F3F3F);
-
-		// int peroid = 100;
-
-		// timer_t timer(service, peroid, [&]()
-		// {
-		// 	executor_status_t status = executor.execute();
-
-		// 	if(executor_status_t::invalid == status ||
-		// 		executor_status_t::halt == status ||
-		// 		executor_status_t::empty == status)
-		// 	{
-		// 		timer.stop();
-		// 	}
-		// });
-
-		// timer.start();
-
-		// service.run();
-
-		// renderer.start();
+		event_thread.join();
 	}
 	catch(std::exception& e)
 	{

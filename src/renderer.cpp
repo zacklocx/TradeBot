@@ -210,19 +210,16 @@ void renderer_t::start(int width, int height, int bg_color)
 	char* argv[] = { _, 0 };
 
 	glutInit(&argc, argv);
-
-	glutSetOption(GLUT_INIT_WINDOW_WIDTH, 1024);
-	glutSetOption(GLUT_INIT_WINDOW_HEIGHT, 768);
 	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_CONTINUE_EXECUTION);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
 
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH | GLUT_MULTISAMPLE);
-
-	if(width > 0 && height > 0)
-	{
-		glutInitWindowSize(width, height);
-	}
-
+	glutInitWindowSize(width, height);
 	glutCreateWindow("");
+
+	if(width <= 0 || height <= 0)
+	{
+		glutFullScreen();
+	}
 
 	glutIgnoreKeyRepeat(1);
 
@@ -236,8 +233,6 @@ void renderer_t::start(int width, int height, int bg_color)
 	glutMouseFunc(mouse_click);
 	glutPassiveMotionFunc(mouse_move);
 	glutMotionFunc(mouse_drag);
-
-	glEnable(GL_MULTISAMPLE);
 
 	double red = (bg_color / 256 / 256 % 256) / 255.0;
 	double green = (bg_color / 256 % 256) / 255.0;
