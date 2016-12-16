@@ -155,7 +155,7 @@ void imgui_glut_prepare(int width, int height)
 
 		io.Fonts->TexID = (void*)(intptr_t)font_tex;
 
-		glBindTexture(GL_TEXTURE_2D, last_tex);
+		glBindTexture(GL_TEXTURE_2D, (unsigned int)last_tex);
 	}
 
 	io.DisplaySize = ImVec2(width, height);
