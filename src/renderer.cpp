@@ -22,7 +22,7 @@ static void reshape(int width, int height)
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluOrtho2D(0, width, 0, height);
+	glOrtho(0, width, 0, height, -1, 1);
 
 	glMatrixMode(GL_MODELVIEW);
 }

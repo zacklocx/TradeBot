@@ -51,7 +51,7 @@ static void imgui_glut_render(ImDrawData* data)
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
 	glLoadIdentity();
-	gluOrtho2D(0, io.DisplaySize.x, io.DisplaySize.y, 0);
+	glOrtho(0, io.DisplaySize.x, io.DisplaySize.y, 0, -1, 1);
 
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();

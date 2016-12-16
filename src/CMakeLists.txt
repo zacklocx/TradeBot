@@ -10,9 +10,6 @@ configure_file(
 	"${PROJECT_SOURCE_DIR}/TradeBotConfig.h"
 )
 
-add_definitions(-Wno-uninitialized)
-add_definitions(-Wno-deprecated-declarations)
-
 add_definitions(-DSOCI_USE_BOOST)
 add_definitions(-DAVHTTP_ENABLE_ZLIB)
 add_definitions(-DAVHTTP_ENABLE_OPENSSL)
