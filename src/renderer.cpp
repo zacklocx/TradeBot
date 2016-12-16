@@ -1,6 +1,8 @@
 
 #include "renderer.h"
 
+#include <cctype>
+
 #include <GL/freeglut.h>
 
 #include "imgui.h"
@@ -55,22 +57,38 @@ static void normal_key_down(unsigned char key, int x, int y)
 	else
 	{
 		ImGuiIO& io = ImGui::GetIO();
-		io.AddInputCharacter(key);
+
+		if(isprint(key))
+		{
+			io.AddInputCharacter(key);
+		}
+		else
+		{
+			io.KeysDown[key] = true;
+		}
 	}
 }
 
 static void normal_key_up(unsigned char key, int x, int y)
 {
+	ImGuiIO& io = ImGui::GetIO();
+
+	if(!isprint(key))
+	{
+		io.KeysDown[key] = false;
+	}
 }
 
 static void special_key_down(int key, int x, int y)
 {
 	ImGuiIO& io = ImGui::GetIO();
-	io.AddInputCharacter(key);
+	io.KeysDown[key] = true;
 }
 
 static void special_key_up(int key, int x, int y)
 {
+	ImGuiIO& io = ImGui::GetIO();
+	io.KeysDown[key] = false;
 }
 
 static void mouse_wheel(int dir, int x, int y)
@@ -174,7 +192,7 @@ void renderer_t::start(int width /* = 0 */, int height /* = 0 */, int color /* =
 	glutKeyboardFunc(normal_key_down);
 	glutKeyboardUpFunc(normal_key_up);
 	glutSpecialFunc(special_key_down);
-	glutSpecialUpFunc(special_key_down);
+	glutSpecialUpFunc(special_key_up);
 	glutMouseFunc(mouse_click);
 	glutPassiveMotionFunc(mouse_move);
 	glutMotionFunc(mouse_drag);
