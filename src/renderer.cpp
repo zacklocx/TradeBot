@@ -64,11 +64,6 @@ static void normal_key_down(unsigned char key, int x, int y)
 		}
 		else
 		{
-			if(13 /* Enter */ == key)
-			{
-				io.AddInputCharacter('\n');
-			}
-
 			io.KeysDown[key] = true;
 		}
 	}
