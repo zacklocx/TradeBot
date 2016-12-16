@@ -50,7 +50,7 @@ static void idle()
 
 static void normal_key_down(unsigned char key, int x, int y)
 {
-	if(0x1B /* ESCAPE */ == key)
+	if(27 /* Escape */ == key)
 	{
 		stop();
 	}
@@ -64,7 +64,7 @@ static void normal_key_down(unsigned char key, int x, int y)
 		}
 		else
 		{
-			if(13 == key)
+			if(13 /* Enter */ == key)
 			{
 				io.AddInputCharacter('\n');
 			}
@@ -188,8 +188,6 @@ void renderer_t::start(int width /* = 0 */, int height /* = 0 */, int color /* =
 	{
 		glutFullScreen();
 	}
-
-	glutIgnoreKeyRepeat(1);
 
 	glutReshapeFunc(reshape);
 	glutDisplayFunc(display);

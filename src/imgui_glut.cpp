@@ -5,10 +5,7 @@
 
 #include "imgui.h"
 
-static int old_elapsed = 0;
-static unsigned int font_tex = 0;
-
-static void imgui_glut_render(ImDrawData* data)
+static void imgui_glut_draw(ImDrawData* data)
 {
 	ImGuiIO& io = ImGui::GetIO();
 
@@ -110,34 +107,34 @@ void imgui_glut_init()
 {
 	ImGuiIO& io = ImGui::GetIO();
 
-	io.RenderDrawListsFn = imgui_glut_render;
+	io.RenderDrawListsFn = imgui_glut_draw;
 
-	io.KeyMap[ImGuiKey_Tab]			= 9;					// tab
-	io.KeyMap[ImGuiKey_LeftArrow]	= GLUT_KEY_LEFT;		// Left
-	io.KeyMap[ImGuiKey_RightArrow]	= GLUT_KEY_RIGHT;		// Right
-	io.KeyMap[ImGuiKey_UpArrow]		= GLUT_KEY_UP;			// Up
-	io.KeyMap[ImGuiKey_DownArrow]	= GLUT_KEY_DOWN;		// Down
-	io.KeyMap[ImGuiKey_PageUp]		= GLUT_KEY_PAGE_UP;		// PageUp
-	io.KeyMap[ImGuiKey_PageDown]	= GLUT_KEY_PAGE_DOWN;	// PageDown
-	io.KeyMap[ImGuiKey_Home]		= GLUT_KEY_HOME;		// Home
-	io.KeyMap[ImGuiKey_End]			= GLUT_KEY_END;			// End
-	io.KeyMap[ImGuiKey_Delete]		= 127;					// Delete
-	io.KeyMap[ImGuiKey_Backspace]	= 8;					// Backspace
-	io.KeyMap[ImGuiKey_Enter]		= 13;					// Enter
-	io.KeyMap[ImGuiKey_Escape]		= 27;					// Escape
-	io.KeyMap[11]					= 1;					// ctrl-A
-	io.KeyMap[12]					= 3;					// ctrl-C
-	io.KeyMap[13]					= 22;					// ctrl-V
-	io.KeyMap[14]					= 24;					// ctrl-X
-	io.KeyMap[15]					= 25;					// ctrl-Y
-	io.KeyMap[16]					= 26;					// ctrl-Z
+	io.KeyMap[ImGuiKey_Tab]			= 9;
+	io.KeyMap[ImGuiKey_LeftArrow]	= GLUT_KEY_LEFT;
+	io.KeyMap[ImGuiKey_RightArrow]	= GLUT_KEY_RIGHT;
+	io.KeyMap[ImGuiKey_UpArrow]		= GLUT_KEY_UP;
+	io.KeyMap[ImGuiKey_DownArrow]	= GLUT_KEY_DOWN;
+	io.KeyMap[ImGuiKey_PageUp]		= GLUT_KEY_PAGE_UP;
+	io.KeyMap[ImGuiKey_PageDown]	= GLUT_KEY_PAGE_DOWN;
+	io.KeyMap[ImGuiKey_Home]		= GLUT_KEY_HOME;
+	io.KeyMap[ImGuiKey_End]			= GLUT_KEY_END;
+	io.KeyMap[ImGuiKey_Delete]		= 127;
+	io.KeyMap[ImGuiKey_Backspace]	= 8;
+	io.KeyMap[ImGuiKey_Enter]		= 13;
+	io.KeyMap[ImGuiKey_Escape]		= 27;
+	io.KeyMap[ImGuiKey_A]			= 1;
+	io.KeyMap[ImGuiKey_C]			= 3;
+	io.KeyMap[ImGuiKey_V]			= 22;
+	io.KeyMap[ImGuiKey_X]			= 24;
+	io.KeyMap[ImGuiKey_Y]			= 25;
+	io.KeyMap[ImGuiKey_Z]			= 26;
 }
 
 void imgui_glut_prepare(int width, int height)
 {
 	ImGuiIO& io = ImGui::GetIO();
 
-	if(!font_tex)
+	if(!ImGui::GetIO().Fonts->TexID)
 	{
 		int last_tex;
 		glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_tex);
@@ -146,6 +143,8 @@ void imgui_glut_prepare(int width, int height)
 		unsigned char* pixels;
 
 		io.Fonts->GetTexDataAsAlpha8(&pixels, &width, &height);
+
+		unsigned int font_tex;
 
 		glGenTextures(1, &font_tex);
 		glBindTexture(GL_TEXTURE_2D, font_tex);
@@ -160,10 +159,10 @@ void imgui_glut_prepare(int width, int height)
 
 	io.DisplaySize = ImVec2(width, height);
 
+	static int old_elapsed = 0;
 	int new_elapsed = glutGet(GLUT_ELAPSED_TIME);
 
-	float delta_time = (new_elapsed - old_elapsed) / 1000.0f;
-	io.DeltaTime = (delta_time > 0.0f)? delta_time : 1.0f / 60.0f;
+	io.DeltaTime = (new_elapsed - old_elapsed) / 1000.0f;
 
 	old_elapsed = new_elapsed;
 
@@ -172,13 +171,13 @@ void imgui_glut_prepare(int width, int height)
 
 void imgui_glut_shutdown()
 {
+	unsigned int font_tex = (intptr_t)ImGui::GetIO().Fonts->TexID;
+
 	if(font_tex)
 	{
 		glDeleteTextures(1, &font_tex);
-		font_tex = 0;
+		ImGui::GetIO().Fonts->TexID = 0;
 	}
-
-	ImGui::GetIO().Fonts->TexID = 0;
 
 	ImGui::Shutdown();
 }
