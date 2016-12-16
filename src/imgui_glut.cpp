@@ -5,7 +5,7 @@
 
 #include "imgui.h"
 
-static int elapsed = 0;
+static int old_elapsed = 0;
 static unsigned int font_tex = 0;
 
 static void imgui_glut_render(ImDrawData* data)
@@ -80,7 +80,7 @@ static void imgui_glut_render(ImDrawData* data)
 			{
 				glBindTexture(GL_TEXTURE_2D, (intptr_t)cmd->TextureId);
 				glScissor(cmd->ClipRect.x, height - cmd->ClipRect.w, cmd->ClipRect.z - cmd->ClipRect.x, cmd->ClipRect.w - cmd->ClipRect.y);
-				glDrawElements(GL_TRIANGLES, cmd->ElemCount, (sizeof(ImDrawIdx) == 2)? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, idx_buffer);
+				glDrawElements(GL_TRIANGLES, cmd->ElemCount, (2 == sizeof(ImDrawIdx))? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, idx_buffer);
 			}
 
 			idx_buffer += cmd->ElemCount;
@@ -103,41 +103,7 @@ static void imgui_glut_render(ImDrawData* data)
 	glViewport(last_viewport[0], last_viewport[1], last_viewport[2], last_viewport[3]);
 	glScissor(last_scissor[0], last_scissor[1], last_scissor[2], last_scissor[3]);
 
-	glBindTexture(GL_TEXTURE_2D, last_tex);
-}
-
-static void imgui_glut_create()
-{
-	ImGuiIO& io = ImGui::GetIO();
-
-	int last_tex;
-	glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_tex);
-
-	int width, height;
-	unsigned char* pixels;
-
-	io.Fonts->GetTexDataAsAlpha8(&pixels, &width, &height);
-
-	glGenTextures(1, &font_tex);
-	glBindTexture(GL_TEXTURE_2D, font_tex);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, width, height, 0, GL_ALPHA, GL_UNSIGNED_BYTE, pixels);
-
-	io.Fonts->TexID = (void*)(intptr_t)font_tex;
-
-	glBindTexture(GL_TEXTURE_2D, last_tex);
-}
-
-static void imgui_glut_destroy()
-{
-	ImGui::GetIO().Fonts->TexID = 0;
-
-	if(font_tex)
-	{
-		glDeleteTextures(1, &font_tex);
-		font_tex = 0;
-	}
+	glBindTexture(GL_TEXTURE_2D, (unsigned int)last_tex);
 }
 
 void imgui_glut_init()
@@ -169,26 +135,50 @@ void imgui_glut_init()
 
 void imgui_glut_prepare(int width, int height)
 {
+	ImGuiIO& io = ImGui::GetIO();
+
 	if(!font_tex)
 	{
-		imgui_glut_create();
-	}
+		int last_tex;
+		glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_tex);
 
-	ImGuiIO& io = ImGui::GetIO();
+		int width, height;
+		unsigned char* pixels;
+
+		io.Fonts->GetTexDataAsAlpha8(&pixels, &width, &height);
+
+		glGenTextures(1, &font_tex);
+		glBindTexture(GL_TEXTURE_2D, font_tex);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, width, height, 0, GL_ALPHA, GL_UNSIGNED_BYTE, pixels);
+
+		io.Fonts->TexID = (void*)(intptr_t)font_tex;
+
+		glBindTexture(GL_TEXTURE_2D, last_tex);
+	}
 
 	io.DisplaySize = ImVec2(width, height);
 
-	int glut_elapsed = glutGet(GLUT_ELAPSED_TIME);
-	float deltaTime = (glut_elapsed - elapsed) / 1000.0f;
+	int new_elapsed = glutGet(GLUT_ELAPSED_TIME);
 
-	io.DeltaTime = (deltaTime > 0.0f)? deltaTime : 1.0f / 60.0f;
-	elapsed = glut_elapsed;
+	float delta_time = (new_elapsed - old_elapsed) / 1000.0f;
+	io.DeltaTime = (delta_time > 0.0f)? delta_time : 1.0f / 60.0f;
+
+	old_elapsed = new_elapsed;
 
 	ImGui::NewFrame();
 }
 
 void imgui_glut_shutdown()
 {
-	imgui_glut_destroy();
+	if(font_tex)
+	{
+		glDeleteTextures(1, &font_tex);
+		font_tex = 0;
+	}
+
+	ImGui::GetIO().Fonts->TexID = 0;
+
 	ImGui::Shutdown();
 }
