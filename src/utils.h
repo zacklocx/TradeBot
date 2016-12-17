@@ -13,7 +13,9 @@
 
 #include <json/json.h>
 
-std::time_t timestamp();
+uint64_t timestamp_s();
+uint64_t timestamp_ms();
+
 std::string md5(const std::string &s);
 std::string urlencode(const std::string &s);
 

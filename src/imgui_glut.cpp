@@ -5,6 +5,8 @@
 
 #include "imgui.h"
 
+#include "utils.h"
+
 static void imgui_glut_draw(ImDrawData* data)
 {
 	ImGuiIO& io = ImGui::GetIO();
@@ -159,12 +161,12 @@ void imgui_glut_prepare(int width, int height)
 
 	io.DisplaySize = ImVec2(width, height);
 
-	static int old_elapsed = 0;
-	int new_elapsed = glutGet(GLUT_ELAPSED_TIME);
+	static uint64_t old_ts = timestamp_ms();
+	uint64_t new_ts = timestamp_ms();
 
-	io.DeltaTime = (new_elapsed - old_elapsed) / 1000.0f;
+	io.DeltaTime = (new_ts - old_ts) / 1000.0f;
 
-	old_elapsed = new_elapsed;
+	old_ts = new_ts;
 
 	ImGui::NewFrame();
 }

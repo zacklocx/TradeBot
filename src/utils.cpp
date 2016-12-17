@@ -4,15 +4,21 @@
 #include <chrono>
 #include <vector>
 #include <sstream>
-#include <iostream>
 
 #include <openssl/md5.h>
 
 #include "dump.h"
 
-std::time_t timestamp()
+uint64_t timestamp_s()
 {
-	return std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	auto ts = std::chrono::system_clock::now().time_since_epoch();
+	return std::chrono::duration_cast<std::chrono::seconds>(ts).count();
+}
+
+uint64_t timestamp_ms()
+{
+	auto ts = std::chrono::system_clock::now().time_since_epoch();
+	return std::chrono::duration_cast<std::chrono::milliseconds>(ts).count();
 }
 
 std::string md5(const std::string &s)
