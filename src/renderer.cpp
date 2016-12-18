@@ -12,6 +12,8 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
+static mouse_state_t mouse_state;
+
 static void stop()
 {
 	imgui_glut_shutdown();
@@ -35,7 +37,7 @@ static void display()
 
 	imgui_glut_prepare(glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT));
 
-	ImGui::ShowTestWindow();
+	// ImGui::ShowTestWindow();
 
 	sig_render();
 	ImGui::Render();
@@ -109,10 +111,17 @@ static void mouse_click(int button, int state, int x, int y)
 	}
 	else
 	{
+		bool left_button = GLUT_LEFT_BUTTON == button;
+		bool right_button = GLUT_RIGHT_BUTTON == button;
+
+		mouse_state.x_ = x;
+		mouse_state.y_ = glutGet(GLUT_WINDOW_HEIGHT) - 1 - y;
+		mouse_state.button_ = left_button? 0 : right_button? 1 : -1;
+
 		ImGuiIO& io = ImGui::GetIO();
 		io.MousePos = ImVec2(x, y);
 
-		if(GLUT_LEFT_BUTTON == button && GLUT_DOWN == state)
+		if(left_button && GLUT_DOWN == state)
 		{
 			io.MouseDown[0] = true;
 		}
@@ -121,7 +130,7 @@ static void mouse_click(int button, int state, int x, int y)
 			io.MouseDown[0] = false;
 		}
 
-		if(GLUT_RIGHT_BUTTON == button && GLUT_DOWN == state)
+		if(right_button == button && GLUT_DOWN == state)
 		{
 			io.MouseDown[1] = true;
 		}
@@ -134,12 +143,19 @@ static void mouse_click(int button, int state, int x, int y)
 
 static void mouse_move(int x, int y)
 {
+	mouse_state.x_ = x;
+	mouse_state.y_ = glutGet(GLUT_WINDOW_HEIGHT) - 1 - y;
+	mouse_state.button_ = -1;
+
 	ImGuiIO& io = ImGui::GetIO();
 	io.MousePos = ImVec2(x, y);
 }
 
 static void mouse_drag(int x, int y)
 {
+	mouse_state.x_ = x;
+	mouse_state.y_ = glutGet(GLUT_WINDOW_HEIGHT) - 1 - y;
+
 	ImGuiIO& io = ImGui::GetIO();
 	io.MousePos = ImVec2(x, y);
 }
@@ -164,6 +180,11 @@ int renderer_t::window_width()
 int renderer_t::window_height()
 {
 	return glutGet(GLUT_WINDOW_HEIGHT);
+}
+
+mouse_state_t renderer_t::mouse_state()
+{
+	return ::mouse_state;
 }
 
 void renderer_t::start(int width /* = 0 */, int height /* = 0 */, int color /* = 0 */)

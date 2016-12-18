@@ -17,6 +17,11 @@ analyzer_t::~analyzer_t()
 	conn_api_handled.disconnect();
 }
 
+void analyzer_t::init_modules()
+{
+	ticker_mod.init(500, 100);
+}
+
 void analyzer_t::on_api_handled(bool status, const api_t& api, const Json::Value& json)
 {
 	if(!status)
@@ -27,4 +32,13 @@ void analyzer_t::on_api_handled(bool status, const api_t& api, const Json::Value
 	std::string name = api.name();
 
 	dump_json(json, name);
+
+	if("ticker" == name)
+	{
+		float price = jtof(json, "ticker.last");
+
+		ticker_mod.analyze(price);
+
+		sig_api_created(api, 0);
+	}
 }

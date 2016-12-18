@@ -26,6 +26,8 @@ int main(int argc, char** argv)
 		command_queue_t queue;
 
 		analyzer_t analyzer;
+		analyzer.init_modules();
+
 		executor_t executor(queue);
 		generator_t generator(client, queue);
 

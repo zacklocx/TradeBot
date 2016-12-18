@@ -43,7 +43,7 @@ include_directories(${CMAKE_SOURCE_DIR}/third_party/imgui)
 include_directories(${CMAKE_SOURCE_DIR}/third_party/avhttp)
 
 file(GLOB IMGUI_CPP ${CMAKE_SOURCE_DIR}/third_party/imgui/*.cpp)
-file(GLOB TB_CPP *.cpp)
+file(GLOB_RECURSE TB_CPP *.cpp)
 
 add_executable(TradeBot ${IMGUI_CPP} ${TB_CPP})
 target_link_libraries(TradeBot ${EXTRA_LIBS})
