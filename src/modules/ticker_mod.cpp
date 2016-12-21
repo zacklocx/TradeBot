@@ -227,14 +227,20 @@ void ticker_mod_t::on_render()
 			float x = it * scale_x + 1.0f;
 			float y = (data_[it] - low_ + unit_price) * scale_y;
 
+			glVertex2f(x - 2.0f, y);
+			glVertex2f(x - 2.0f, y - 5.0f);
+
 			glVertex2f(x - 1.0f, y);
-			glVertex2f(x - 1.0f, y - 3.0f);
+			glVertex2f(x - 1.0f, y - 5.0f);
 
 			glVertex2f(x, y);
-			glVertex2f(x, y - 3.0f);
+			glVertex2f(x, y - 5.0f);
 
 			glVertex2f(x + 1.0f, y);
-			glVertex2f(x + 1.0f, y - 3.0f);
+			glVertex2f(x + 1.0f, y - 5.0f);
+
+			glVertex2f(x + 2.0f, y);
+			glVertex2f(x + 2.0f, y - 5.0f);
 		}
 	}
 
