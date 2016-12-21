@@ -12,6 +12,13 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
+struct mouse_state_t
+{
+	mouse_state_t() : x_(0), y_(0), button_(-1) {}
+
+	int x_, y_, button_;
+};
+
 static mouse_state_t mouse_state;
 
 static void stop()
@@ -182,20 +189,30 @@ int renderer_t::window_height()
 	return glutGet(GLUT_WINDOW_HEIGHT);
 }
 
-mouse_state_t renderer_t::mouse_state()
+int renderer_t::mouse_x()
 {
-	return ::mouse_state;
+	return mouse_state.x_;
 }
 
-void renderer_t::start(int width /* = 0 */, int height /* = 0 */, int color /* = 0 */)
+int renderer_t::mouse_y()
+{
+	return mouse_state.y_;
+}
+
+int renderer_t::mouse_button()
+{
+	return mouse_state.button_;
+}
+
+void renderer_t::start(int width, int height, int bg_color)
 {
 	int argc = 1;
 	char _[] = "";
 	char* argv[] = { _, 0 };
 
 	glutInit(&argc, argv);
-	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
+	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
 	glutInitWindowSize(width, height);
 	glutCreateWindow("");
@@ -216,9 +233,9 @@ void renderer_t::start(int width /* = 0 */, int height /* = 0 */, int color /* =
 	glutPassiveMotionFunc(mouse_move);
 	glutMotionFunc(mouse_drag);
 
-	double red = (color / 65536 % 256) / 255.0;
-	double green = (color / 256 % 256) / 255.0;
-	double blue = (color % 256) / 255.0;
+	double red = (bg_color / 65536 % 256) / 255.0;
+	double green = (bg_color / 256 % 256) / 255.0;
+	double blue = (bg_color % 256) / 255.0;
 
 	glClearColor(red, green, blue, 1.0);
 

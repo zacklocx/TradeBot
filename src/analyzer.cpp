@@ -5,6 +5,7 @@
 
 #include <boost/bind.hpp>
 
+#include "dump.h"
 #include "utils.h"
 
 analyzer_t::analyzer_t()
@@ -19,7 +20,7 @@ analyzer_t::~analyzer_t()
 
 void analyzer_t::init_modules()
 {
-	ticker_mod.init(500, 100);
+	ticker_mod.init(500, 50);
 }
 
 void analyzer_t::on_api_handled(bool status, const api_t& api, const Json::Value& json)
@@ -29,13 +30,13 @@ void analyzer_t::on_api_handled(bool status, const api_t& api, const Json::Value
 		return;
 	}
 
-	std::string name = api.name();
+	LLOG(true) << json.toStyledString();
 
-	dump_json(json, name);
+	std::string name = api.name();
 
 	if("ticker" == name)
 	{
-		float price = jtof(json, "ticker.last");
+		float price = jtof(query_json(json, "ticker.last"));
 
 		ticker_mod.analyze(price);
 

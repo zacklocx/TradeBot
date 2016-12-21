@@ -4,7 +4,7 @@
 
 #include "signals.h"
 
-#include "modules/mod_list.h"
+#include "modules/ticker_mod.h"
 
 class analyzer_t
 {

@@ -8,9 +8,9 @@
 
 #include "api.h"
 
+extern boost::signals2::signal<void()> sig_render;
+
 extern boost::signals2::signal<void(const api_t&, int priority)> sig_api_created;
 extern boost::signals2::signal<void(bool, const api_t&, const Json::Value&)> sig_api_handled;
-
-extern boost::signals2::signal<void()> sig_render;
 
 #endif /* SIGNALS_INCLUDED */

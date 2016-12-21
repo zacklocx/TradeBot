@@ -22,7 +22,7 @@ private:
 	std::vector<float> data_;
 
 	float low_, high_;
-	float recent_low_, recent_high_;
+	float interval_low_, interval_high_;
 	std::vector<int> low_points_, high_points_;
 
 	void on_render();

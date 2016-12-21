@@ -2,13 +2,6 @@
 #ifndef RENDERER_INCLUDED
 #define RENDERER_INCLUDED
 
-struct mouse_state_t
-{
-	mouse_state_t() : x_(0), y_(0), button_(-1) {}
-
-	int x_, y_, button_;
-};
-
 class renderer_t
 {
 public:
@@ -18,9 +11,11 @@ public:
 	static int window_width();
 	static int window_height();
 
-	static mouse_state_t mouse_state();
+	static int mouse_x();
+	static int mouse_y();
+	static int mouse_button();
 
-	static void start(int width = 0, int height = 0, int color = 0);
+	static void start(int width, int height, int bg_color);
 	static void stop();
 };
 

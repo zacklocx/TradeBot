@@ -8,32 +8,6 @@
 #include <iomanip>
 #include <iostream>
 
-class dump_helper_t
-{
-public:
-	dump_helper_t(const std::string& tag = "", std::ostream& out = std::cout) : tag_(tag), out_(out)
-	{
-		if(tag_.length() > 0)
-		{
-			out << "[" << tag << "]\n";
-			out << "----------------------START----------------------\n";
-		}
-	}
-
-	~dump_helper_t()
-	{
-		if(tag_.length() > 0)
-		{
-			out_ << "-----------------------END-----------------------\n\n";
-			out_.flush();
-		}
-	}
-
-private:
-	std::string tag_;
-	std::ostream& out_;
-};
-
 class line_dumper_t
 {
 public:
@@ -52,6 +26,8 @@ public:
 		}
 
 label:
+		stream_ << "\n";
+
 		if(show_time_)
 		{
 			auto now = std::chrono::system_clock::now();
@@ -59,8 +35,6 @@ label:
 
 			out_ << "[" << std::put_time(std::localtime(&time), "%F %T") << "] ";
 		}
-
-		stream_ << "\n";
 
 		out_ << stream_.str();
 		out_.flush();

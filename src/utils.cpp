@@ -1,13 +1,14 @@
 
 #include "utils.h"
 
+#include <cstdio>
+
 #include <chrono>
 #include <vector>
 #include <sstream>
+#include <iostream>
 
 #include <openssl/md5.h>
-
-#include "dump.h"
 
 uint64_t timestamp_s()
 {
@@ -21,7 +22,7 @@ uint64_t timestamp_ms()
 	return std::chrono::duration_cast<std::chrono::milliseconds>(ts).count();
 }
 
-std::string md5(const std::string &s)
+std::string md5(const std::string& s)
 {
 	unsigned char digest[MD5_DIGEST_LENGTH];
 	MD5((unsigned char*)s.c_str(), s.length(), digest);
@@ -36,7 +37,7 @@ std::string md5(const std::string &s)
 	return ret;
 }
 
-std::string urlencode(const std::string &s)
+std::string urlencode(const std::string& s)
 {
 	const char lookup[]= "0123456789abcdef";
 
@@ -47,8 +48,8 @@ std::string urlencode(const std::string &s)
 		const char& c = s[i];
 
 		if((c >= 48 && c <= 57) || // 0-9
-			(c >= 65 && c <= 90) || // a-z
-			(c >= 97 && c <= 122) || // A-Z
+			(c >= 65 && c <= 90) || // A-Z
+			(c >= 97 && c <= 122) || // a-z
 			(c == '-' || c == '_' || c == '.' || c == '~'))
 		{
 			ret << c;
@@ -62,12 +63,6 @@ std::string urlencode(const std::string &s)
 	}
 
 	return ret.str();
-}
-
-void dump_json(const Json::Value& json, const std::string& tag /* = "" */)
-{
-	dump_helper_t _(tag);
-	std::cout << json.toStyledString();
 }
 
 Json::Value query_json(const Json::Value& json, const std::string& query)
@@ -103,153 +98,137 @@ Json::Value query_json(const Json::Value& json, const std::string& query)
 	return *ret;
 }
 
-bool jtob(const Json::Value& json, const std::string& query /* = "" */)
+bool jtob(const Json::Value& json)
 {
 	bool ret = false;
 
-	Json::Value j = query_json(json, query);
-
-	if(j.isBool())
+	if(json.isBool())
 	{
-		ret = j.asBool();
+		ret = json.asBool();
 	}
-	else if(j.isIntegral())
+	else if(json.isIntegral())
 	{
-		ret = j.asInt() != 0;
+		ret = json.asInt() != 0;
 	}
 
 	return ret;
 }
 
-std::string jtos(const Json::Value& json, const std::string& query /* = "" */)
+std::string jtos(const Json::Value& json)
 {
 	std::string ret = "";
 
-	Json::Value j = query_json(json, query);
-
-	if(j.isString())
+	if(json.isString())
 	{
-		ret = j.asString();
+		ret = json.asString();
 	}
-	else if(j.isInt())
+	else if(json.isInt())
 	{
-		ret = std::to_string(j.asInt64());
+		ret = std::to_string(json.asInt64());
 	}
-	else if(j.isUInt())
+	else if(json.isUInt())
 	{
-		ret = std::to_string(j.asUInt64());
+		ret = std::to_string(json.asUInt64());
 	}
-	else if(j.isDouble())
+	else if(json.isDouble())
 	{
-		ret = std::to_string(j.asDouble());
+		ret = std::to_string(json.asDouble());
 	}
 
 	return ret;
 }
 
-int jtoi(const Json::Value& json, const std::string& query /* = "" */)
+int jtoi(const Json::Value& json)
 {
 	int ret = 0;
 
-	Json::Value j = query_json(json, query);
-
-	if(j.isString())
+	if(json.isString())
 	{
-		ret = std::stoi(j.asString());
+		ret = std::stoi(json.asString());
 	}
-	else if(j.isInt())
+	else if(json.isInt())
 	{
-		ret = j.asInt();
+		ret = json.asInt();
 	}
 
 	return ret;
 }
 
-unsigned int jtou(const Json::Value& json, const std::string& query /* = "" */)
+unsigned int jtou(const Json::Value& json)
 {
 	unsigned int ret = 0;
 
-	Json::Value j = query_json(json, query);
-
-	if(j.isString())
+	if(json.isString())
 	{
-		ret = std::stoul(j.asString());
+		ret = std::stoul(json.asString());
 	}
-	else if(j.isUInt())
+	else if(json.isUInt())
 	{
-		ret = j.asUInt();
+		ret = json.asUInt();
 	}
 
 	return ret;
 }
 
-int64_t jtoi64(const Json::Value& json, const std::string& query /* = "" */)
+int64_t jtoi64(const Json::Value& json)
 {
 	int64_t ret = 0;
 
-	Json::Value j = query_json(json, query);
-
-	if(j.isString())
+	if(json.isString())
 	{
-		ret = std::stoll(j.asString());
+		ret = std::stoll(json.asString());
 	}
-	else if(j.isInt())
+	else if(json.isInt())
 	{
-		ret = j.asInt64();
+		ret = json.asInt64();
 	}
 
 	return ret;
 }
 
-uint64_t jtou64(const Json::Value& json, const std::string& query /* = "" */)
+uint64_t jtou64(const Json::Value& json)
 {
 	uint64_t ret = 0;
 
-	Json::Value j = query_json(json, query);
-
-	if(j.isString())
+	if(json.isString())
 	{
-		ret = std::stoull(j.asString());
+		ret = std::stoull(json.asString());
 	}
-	else if(j.isUInt())
+	else if(json.isUInt())
 	{
-		ret = j.asUInt64();
+		ret = json.asUInt64();
 	}
 
 	return ret;
 }
 
-float jtof(const Json::Value& json, const std::string& query /* = "" */)
+float jtof(const Json::Value& json)
 {
 	float ret = 0.0f;
 
-	Json::Value j = query_json(json, query);
-
-	if(j.isString())
+	if(json.isString())
 	{
-		ret = std::stof(j.asString());
+		ret = std::stof(json.asString());
 	}
-	else if(j.isDouble())
+	else if(json.isDouble())
 	{
-		ret = j.asFloat();
+		ret = json.asFloat();
 	}
 
 	return ret;
 }
 
-double jtod(const Json::Value& json, const std::string& query /* = "" */)
+double jtod(const Json::Value& json)
 {
 	double ret = 0.0;
 
-	Json::Value j = query_json(json, query);
-
-	if(j.isString())
+	if(json.isString())
 	{
-		ret = std::stod(j.asString());
+		ret = std::stod(json.asString());
 	}
-	else if(j.isDouble())
+	else if(json.isDouble())
 	{
-		ret = j.asDouble();
+		ret = json.asDouble();
 	}
 
 	return ret;
