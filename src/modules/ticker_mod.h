@@ -22,8 +22,10 @@ private:
 	std::vector<float> data_;
 
 	float low_, high_;
-	float interval_low_, interval_high_;
-	std::vector<int> break_points_;
+	float interval_low_, interval_high_, interval_last_;
+
+	std::vector<int> interval_break_;
+	std::vector<float> break_diff1_, break_diff2_;
 
 	void on_render();
 };

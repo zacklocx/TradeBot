@@ -16,7 +16,7 @@
 ticker_mod_t::ticker_mod_t() :
 	capacity_(0), interval_(0),
 	low_(0.0f), high_(0.0f),
-	interval_low_(0.0f), interval_high_(0.0f)
+	interval_low_(0.0f), interval_high_(0.0f), interval_last_(0.0f)
 {
 	conn_render = sig_render.connect(boost::bind(&ticker_mod_t::on_render, this));
 }
@@ -47,9 +47,12 @@ void ticker_mod_t::analyze(float price)
 		size = 0;
 
 		low_ = high_ = price;
-		interval_low_ = interval_high_ = 0.0f;
+		interval_low_ = interval_high_ = interval_last_ = 0.0f;
 
-		break_points_.clear();
+		interval_break_.clear();
+
+		break_diff1_.clear();
+		break_diff2_.clear();
 	}
 
 	data_.push_back(price);
@@ -72,15 +75,34 @@ void ticker_mod_t::analyze(float price)
 		interval_low_ = *std::min_element(begin, end);
 		interval_high_ = *std::max_element(begin, end);
 
-		if(price < interval_low_)
+		if(price < interval_low_ || price > interval_high_)
 		{
-			interval_low_ = price;
-			break_points_.push_back(1 - size);
-		}
-		else if(price > interval_high_)
-		{
-			interval_high_ = price;
-			break_points_.push_back(size - 1);
+			if(interval_last_ > 0.0f)
+			{
+				int n = size - 1 - std::abs(interval_break_.back());
+				float diff1 = (price - interval_last_) / n;
+
+				if(break_diff1_.size() > 0)
+				{
+					float diff2 = (diff1 - break_diff1_.back()) / n;
+					break_diff2_.push_back(diff2);
+				}
+
+				break_diff1_.push_back(diff1);
+			}
+
+			if(price < interval_low_)
+			{
+				interval_low_ = price;
+				interval_break_.push_back(1 - size);
+			}
+			else if(price > interval_high_)
+			{
+				interval_high_ = price;
+				interval_break_.push_back(size - 1);
+			}
+
+			interval_last_ = price;
 		}
 	}
 }
@@ -112,7 +134,7 @@ void ticker_mod_t::on_render()
 	float scale_y = content_height / (high_ - low_ + unit_price);
 
 	int division_x = content_width / (interval_ * scale_x) * 2;
-	int division_y = floor(high_ / unit_price) - floor(low_ / unit_price);
+	int division_y = std::floor(high_ / unit_price) - std::floor(low_ / unit_price);
 
 	float last_price = data_[size - 1];
 
@@ -163,7 +185,7 @@ void ticker_mod_t::on_render()
 
 	for(int i = 0; i <= division_y; ++i)
 	{
-		int n = floor(low_ / unit_price) + i;
+		int n = std::floor(low_ / unit_price) + i;
 		float y = (unit_price * n - low_ + unit_price) * scale_y;
 
 		glVertex2f(content_width + 1.0f, y);
@@ -198,7 +220,7 @@ void ticker_mod_t::on_render()
 
 		glColor3ub(255, 255, 255);
 
-		for(auto it : break_points_)
+		for(auto it : interval_break_)
 		{
 			if(it < 0)
 			{
@@ -212,7 +234,7 @@ void ticker_mod_t::on_render()
 
 		glBegin(GL_LINES);
 
-		for(auto it : break_points_)
+		for(auto it : interval_break_)
 		{
 			if(it < 0)
 			{
@@ -252,4 +274,16 @@ void ticker_mod_t::on_render()
 	ImGui::Text("high:"); ImGui::SameLine(80); ImGui::Text("%f", high_);
 	ImGui::Text("last:"); ImGui::SameLine(80); ImGui::Text("%f", last_price);
 	ImGui::Text("selected:"); ImGui::SameLine(80); ImGui::Text("%f", selected_price);
+
+	ImGui::Separator();
+
+	if(break_diff1_.size() > 0)
+	{
+		ImGui::Text("diff1:"); ImGui::SameLine(80); ImGui::Text("%f", break_diff1_.back());
+	}
+
+	if(break_diff2_.size() > 0)
+	{
+		ImGui::Text("diff2:"); ImGui::SameLine(80); ImGui::Text("%f", break_diff2_.back());
+	}
 }
