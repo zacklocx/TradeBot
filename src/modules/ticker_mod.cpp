@@ -192,6 +192,26 @@ void ticker_mod_t::on_render()
 
 	if(size > interval_)
 	{
+		glEnd();
+
+		glBegin(GL_LINE_STRIP);
+
+		glColor3ub(255, 255, 255);
+
+		for(auto it : break_points_)
+		{
+			if(it < 0)
+			{
+				it = -it;
+			}
+
+			glVertex2f(it * scale_x, (data_[it] - low_ + unit_price) * scale_y);
+		}
+
+		glEnd();
+
+		glBegin(GL_LINES);
+
 		for(auto it : break_points_)
 		{
 			if(it < 0)
@@ -216,15 +236,6 @@ void ticker_mod_t::on_render()
 			glVertex2f(x + 1.0f, y);
 			glVertex2f(x + 1.0f, y - 3.0f);
 		}
-	}
-
-	glColor3ub(255, 255, 255);
-
-	{
-		float y = (last_price - low_ + unit_price) * scale_y;
-
-		glVertex2f(0.0f, y);
-		glVertex2f(content_width, y);
 	}
 
 	glEnd();
