@@ -23,7 +23,7 @@ private:
 
 	float low_, high_;
 	float interval_low_, interval_high_;
-	std::vector<int> low_points_, high_points_;
+	std::vector<int> break_points_;
 
 	void on_render();
 };

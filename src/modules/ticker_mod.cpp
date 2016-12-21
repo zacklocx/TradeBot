@@ -15,7 +15,8 @@
 
 ticker_mod_t::ticker_mod_t() :
 	capacity_(0), interval_(0),
-	low_(0.0f), high_(0.0f), interval_low_(0.0f), interval_high_(0.0f)
+	low_(0.0f), high_(0.0f),
+	interval_low_(0.0f), interval_high_(0.0f)
 {
 	conn_render = sig_render.connect(boost::bind(&ticker_mod_t::on_render, this));
 }
@@ -48,8 +49,7 @@ void ticker_mod_t::analyze(float price)
 		low_ = high_ = price;
 		interval_low_ = interval_high_ = 0.0f;
 
-		low_points_.clear();
-		high_points_.clear();
+		break_points_.clear();
 	}
 
 	data_.push_back(price);
@@ -75,12 +75,12 @@ void ticker_mod_t::analyze(float price)
 		if(price < interval_low_)
 		{
 			interval_low_ = price;
-			low_points_.push_back(size - 1);
+			break_points_.push_back(1 - size);
 		}
 		else if(price > interval_high_)
 		{
 			interval_high_ = price;
-			high_points_.push_back(size - 1);
+			break_points_.push_back(size - 1);
 		}
 	}
 }
@@ -192,27 +192,18 @@ void ticker_mod_t::on_render()
 
 	if(size > interval_)
 	{
-		glColor3ub(255, 255, 0);
-
-		for(const auto& it : low_points_)
+		for(auto it : break_points_)
 		{
-			float x = it * scale_x + 1.0f;
-			float y = (data_[it] - low_ + unit_price) * scale_y;
+			if(it < 0)
+			{
+				it = -it;
+				glColor3ub(255, 255, 0);
+			}
+			else
+			{
+				glColor3ub(0, 255, 0);
+			}
 
-			glVertex2f(x - 1.0f, y);
-			glVertex2f(x - 1.0f, y - 3.0f);
-
-			glVertex2f(x, y);
-			glVertex2f(x, y - 3.0f);
-
-			glVertex2f(x + 1.0f, y);
-			glVertex2f(x + 1.0f, y - 3.0f);
-		}
-
-		glColor3ub(0, 255, 0);
-
-		for(const auto& it : high_points_)
-		{
 			float x = it * scale_x + 1.0f;
 			float y = (data_[it] - low_ + unit_price) * scale_y;
 
