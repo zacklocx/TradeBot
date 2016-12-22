@@ -19,11 +19,11 @@ private:
 	boost::signals2::connection conn_render;
 
 	int capacity_, interval_;
-	std::vector<float> data_;
 
 	float low_, high_;
-	float interval_low_, interval_high_, interval_last_;
+	std::vector<float> data_;
 
+	float interval_low_, interval_high_, interval_last_;
 	std::vector<int> interval_break_;
 
 	void on_render();

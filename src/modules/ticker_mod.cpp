@@ -11,7 +11,6 @@
 
 #include "imgui.h"
 
-#include "../dump.h"
 #include "../renderer.h"
 
 ticker_mod_t::ticker_mod_t() :
@@ -44,12 +43,11 @@ void ticker_mod_t::analyze(float price)
 
 	if(size >= capacity_ || 0 == size)
 	{
+		low_ = high_ = price;
 		data_.clear();
 		size = 0;
 
-		low_ = high_ = price;
 		interval_low_ = interval_high_ = interval_last_ = 0.0f;
-
 		interval_break_.clear();
 	}
 
@@ -120,8 +118,7 @@ void ticker_mod_t::on_render()
 	int selected = -1;
 	float selected_price = 0.0f;
 
-	if((mouse_x - padding >= 0 && mouse_x - padding < content_width) &&
-		(mouse_y - padding >= 0 && mouse_y - padding < content_height))
+	if(mouse_y - padding >= 0 && mouse_y - padding < content_height)
 	{
 		selected = (mouse_x - padding) / scale_x;
 
@@ -156,7 +153,7 @@ void ticker_mod_t::on_render()
 
 	for(int i = 0; i <= division_x; ++i)
 	{
-		float x = 1.0f * content_width / division_x * i + 1.0f;
+		float x = 0.5f * interval_ * i * scale_x + 1.0f;
 
 		glVertex2f(x, -1.0f);
 		glVertex2f(x, (i % 2)? -11.0f : -21.0f);
@@ -247,7 +244,6 @@ void ticker_mod_t::on_render()
 
 	ImGui::Text("i_low:"); ImGui::SameLine(80); ImGui::Text("%f", interval_low_);
 	ImGui::Text("i_high:"); ImGui::SameLine(80); ImGui::Text("%f", interval_high_);
-	ImGui::Text("i_last:"); ImGui::SameLine(80); ImGui::Text("%f", interval_last_);
 
 	ImGui::Separator();
 
