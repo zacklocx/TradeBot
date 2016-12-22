@@ -11,6 +11,7 @@
 
 #include "imgui.h"
 
+#include "../dump.h"
 #include "../renderer.h"
 
 ticker_mod_t::ticker_mod_t() :
@@ -80,15 +81,48 @@ void ticker_mod_t::analyze(float price)
 			if(interval_last_ > 0.0f)
 			{
 				int n = size - 1 - std::abs(interval_break_.back());
-				float diff1 = (price - interval_last_) / n;
+
+				float diff1 = 0.0f, diff2 = 0.0f;
+				float diff1_last = 0.0f, diff2_last = 0.0f;
+
+				diff1 = (price - interval_last_) / n;
 
 				if(break_diff1_.size() > 0)
 				{
-					float diff2 = (diff1 - break_diff1_.back()) / n;
+					diff1_last = break_diff1_.back();
+
+					diff2 = (diff1 - diff1_last) / n;
+
+					if(break_diff2_.size() > 0)
+					{
+						diff2_last = break_diff2_.back();
+					}
+
 					break_diff2_.push_back(diff2);
 				}
 
 				break_diff1_.push_back(diff1);
+
+				if(break_diff2_.size() > 1)
+				{
+					float falloff = std::pow(0.6f, n);
+
+					float diff1_change = diff1_last * n * falloff;
+					float diff2_change = diff2_last * n * n * 0.5f * falloff;
+
+					float estimated = interval_last_ + diff1_change + diff2_change;
+
+					float offset = price - estimated;
+					float offset_rate = offset / (high_ - low_) * 100.0f;
+
+					LLOG() << "n: " << n;
+					LLOG() << "high - low: " << high_ - low_;
+					LLOG() << "real: " << price;
+					LLOG() << "estimated: " << estimated;
+					LLOG() << "offset: " << offset;
+					LLOG() << "offset_rate: " << offset_rate;
+					LLOG();
+				}
 			}
 
 			if(price < interval_low_)
