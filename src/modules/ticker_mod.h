@@ -25,7 +25,6 @@ private:
 	float interval_low_, interval_high_, interval_last_;
 
 	std::vector<int> interval_break_;
-	std::vector<float> break_diff1_, break_diff2_;
 
 	void on_render();
 };

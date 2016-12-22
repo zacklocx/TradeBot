@@ -51,9 +51,6 @@ void ticker_mod_t::analyze(float price)
 		interval_low_ = interval_high_ = interval_last_ = 0.0f;
 
 		interval_break_.clear();
-
-		break_diff1_.clear();
-		break_diff2_.clear();
 	}
 
 	data_.push_back(price);
@@ -76,67 +73,15 @@ void ticker_mod_t::analyze(float price)
 		interval_low_ = *std::min_element(begin, end);
 		interval_high_ = *std::max_element(begin, end);
 
-		if(price < interval_low_ || price > interval_high_)
+		if(price < interval_low_)
 		{
-			if(interval_last_ > 0.0f)
-			{
-				int n = size - 1 - std::abs(interval_break_.back());
-
-				float diff1 = 0.0f, diff2 = 0.0f;
-				float diff1_last = 0.0f, diff2_last = 0.0f;
-
-				diff1 = (price - interval_last_) / n;
-
-				if(break_diff1_.size() > 0)
-				{
-					diff1_last = break_diff1_.back();
-
-					diff2 = (diff1 - diff1_last) / n;
-
-					if(break_diff2_.size() > 0)
-					{
-						diff2_last = break_diff2_.back();
-					}
-
-					break_diff2_.push_back(diff2);
-				}
-
-				break_diff1_.push_back(diff1);
-
-				if(break_diff2_.size() > 1)
-				{
-					float falloff = std::pow(0.6f, n);
-
-					float diff1_change = diff1_last * n * falloff;
-					float diff2_change = diff2_last * n * n * 0.5f * falloff;
-
-					float estimated = interval_last_ + diff1_change + diff2_change;
-
-					float offset = price - estimated;
-					float offset_rate = offset / (high_ - low_) * 100.0f;
-
-					LLOG() << "n: " << n;
-					LLOG() << "high - low: " << high_ - low_;
-					LLOG() << "real: " << price;
-					LLOG() << "estimated: " << estimated;
-					LLOG() << "offset: " << offset;
-					LLOG() << "offset_rate: " << offset_rate;
-					LLOG();
-				}
-			}
-
-			if(price < interval_low_)
-			{
-				interval_low_ = price;
-				interval_break_.push_back(1 - size);
-			}
-			else if(price > interval_high_)
-			{
-				interval_high_ = price;
-				interval_break_.push_back(size - 1);
-			}
-
-			interval_last_ = price;
+			interval_low_ = interval_last_ = price;
+			interval_break_.push_back(1 - size);
+		}
+		else if(price > interval_high_)
+		{
+			interval_high_ = interval_last_ = price;
+			interval_break_.push_back(size - 1);
 		}
 	}
 }
@@ -217,13 +162,12 @@ void ticker_mod_t::on_render()
 		glVertex2f(x, (i % 2)? -11.0f : -21.0f);
 	}
 
-	for(int i = 0; i <= division_y; ++i)
+	for(int n = std::floor(low_ / unit_price), i = 0; i <= division_y; ++i)
 	{
-		int n = std::floor(low_ / unit_price) + i;
-		float y = (unit_price * n - low_ + unit_price) * scale_y;
+		float y = (unit_price * (n + i) - low_ + unit_price) * scale_y;
 
 		glVertex2f(content_width + 1.0f, y);
-		glVertex2f(content_width + ((n % _1_unit_price)? 11.0f : 21.0f), y);
+		glVertex2f(content_width + (((n + i) % _1_unit_price)? 11.0f : 21.0f), y);
 	}
 
 	glColor3ub(255, 0, 0);
@@ -283,20 +227,11 @@ void ticker_mod_t::on_render()
 			float x = it * scale_x + 1.0f;
 			float y = (data_[it] - low_ + unit_price) * scale_y;
 
-			glVertex2f(x - 2.0f, y);
-			glVertex2f(x - 2.0f, y - 5.0f);
-
-			glVertex2f(x - 1.0f, y);
-			glVertex2f(x - 1.0f, y - 5.0f);
-
-			glVertex2f(x, y);
-			glVertex2f(x, y - 5.0f);
-
-			glVertex2f(x + 1.0f, y);
-			glVertex2f(x + 1.0f, y - 5.0f);
-
-			glVertex2f(x + 2.0f, y);
-			glVertex2f(x + 2.0f, y - 5.0f);
+			for(int i = -2; i <= 2; ++i)
+			{
+				glVertex2f(x + i, y);
+				glVertex2f(x + i, y - 5.0f);
+			}
 		}
 	}
 
@@ -307,17 +242,14 @@ void ticker_mod_t::on_render()
 	ImGui::Text("low:"); ImGui::SameLine(80); ImGui::Text("%f", low_);
 	ImGui::Text("high:"); ImGui::SameLine(80); ImGui::Text("%f", high_);
 	ImGui::Text("last:"); ImGui::SameLine(80); ImGui::Text("%f", last_price);
-	ImGui::Text("selected:"); ImGui::SameLine(80); ImGui::Text("%f", selected_price);
 
 	ImGui::Separator();
 
-	if(break_diff1_.size() > 0)
-	{
-		ImGui::Text("diff1:"); ImGui::SameLine(80); ImGui::Text("%f", break_diff1_.back());
-	}
+	ImGui::Text("i_low:"); ImGui::SameLine(80); ImGui::Text("%f", interval_low_);
+	ImGui::Text("i_high:"); ImGui::SameLine(80); ImGui::Text("%f", interval_high_);
+	ImGui::Text("i_last:"); ImGui::SameLine(80); ImGui::Text("%f", interval_last_);
 
-	if(break_diff2_.size() > 0)
-	{
-		ImGui::Text("diff2:"); ImGui::SameLine(80); ImGui::Text("%f", break_diff2_.back());
-	}
+	ImGui::Separator();
+
+	ImGui::Text("selected:"); ImGui::SameLine(80); ImGui::Text("%f", selected_price);
 }
