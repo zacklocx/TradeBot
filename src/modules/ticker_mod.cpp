@@ -3,7 +3,9 @@
 
 #include <cmath>
 
+#include <string>
 #include <algorithm>
+#include <initializer_list>
 
 #include <boost/bind.hpp>
 
@@ -23,7 +25,7 @@ ticker_mod_t::ticker_mod_t() :
 	trigger_target_(3),
 	long_signal_(0), long_target_(8),
 	short_signal_(0), short_target_(8),
-	unit_btc_(1.0f), max_btc_(3.0f),
+	unit_btc_(0.01f), max_btc_(0.03f),
 	long_cny_(0.0f), long_btc_(0.0f), short_cny_(0.0f), short_btc_(0.0f),
 	net_profit_(0.0f)
 {
@@ -127,7 +129,7 @@ void ticker_mod_t::analyze(float price)
 				short_sell(price);
 			}
 
-			net_profit_ = long_cny_ + short_cny_ + (long_btc_ + short_btc_) * unit_btc_ * price;
+			net_profit_ = long_cny_ + short_cny_ + (long_btc_ + short_btc_) * price;
 		}
 	}
 }
@@ -136,8 +138,12 @@ void ticker_mod_t::long_buy(float price)
 {
 	if(long_btc_ + unit_btc_ <= max_btc_)
 	{
-		long_cny_ -= unit_btc_ * price;
+		float cny = unit_btc_ * price;
+
+		long_cny_ -= cny;
 		long_btc_ += unit_btc_;
+
+		create_buy_api(cny);
 	}
 }
 
@@ -145,8 +151,12 @@ void ticker_mod_t::long_sell(float price)
 {
 	if(long_btc_ > 0.0)
 	{
-		long_cny_ += long_btc_ * price;
-		long_btc_ = 0.0f;
+		float btc = long_btc_;
+
+		long_cny_ += btc * price;
+		long_btc_ -= btc;
+
+		create_sell_api(btc);
 	}
 }
 
@@ -154,8 +164,12 @@ void ticker_mod_t::short_buy(float price)
 {
 	if(short_cny_ > 0.0)
 	{
-		short_btc_ += short_cny_ / (unit_btc_ * price);
-		short_cny_ = 0.0f;
+		float cny = short_cny_;
+
+		short_cny_ -= cny;
+		short_btc_ += cny / price;
+
+		create_buy_api(cny);
 	}
 }
 
@@ -163,9 +177,25 @@ void ticker_mod_t::short_sell(float price)
 {
 	if(short_cny_ <= (max_btc_ - unit_btc_) * price)
 	{
-		short_btc_ -= unit_btc_;
-		short_cny_ += unit_btc_ * price;
+		float btc = unit_btc_;
+
+		short_cny_ += btc * price;
+		short_btc_ -= btc;
+
+		create_sell_api(btc);
 	}
+}
+
+void ticker_mod_t::create_buy_api(float cny)
+{
+	api_t trade_api("trade", "POST", {{"symbol", "btc_cny"}, {"type", "buy_market"}, {"price", std::to_string(cny)}});
+	// sig_api_created(trade_api, 1);
+}
+
+void ticker_mod_t::create_sell_api(float btc)
+{
+	api_t trade_api("trade", "POST", {{"symbol", "btc_cny"}, {"type", "sell_market"}, {"amount", std::to_string(btc)}});
+	// sig_api_created(trade_api, 1);
 }
 
 void ticker_mod_t::on_render()

@@ -42,4 +42,8 @@ void analyzer_t::on_api_handled(bool status, const api_t& api, const Json::Value
 
 		sig_api_created(api, 0);
 	}
+	else if("trade" == name)
+	{
+		LLOG() << json.toStyledString();
+	}
 }

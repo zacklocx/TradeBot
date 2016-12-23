@@ -47,6 +47,9 @@ private:
 	void short_buy(float price);
 	void short_sell(float price);
 
+	void create_buy_api(float cny);
+	void create_sell_api(float btc);
+
 	void on_render();
 };
 
