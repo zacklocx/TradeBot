@@ -19,9 +19,11 @@ api_t::param_type api_t::sign() const
 
 	std::string separator = "";
 
-	param_stream << "api_key=" << api_key << "&";
+	param_type ret(param_);
 
-	for(const auto& it : param_)
+	ret["api_key"] = api_key;
+
+	for(const auto& it : ret)
 	{
 		param_stream << separator << it.first << "=" << it.second;
 		separator = "&";
@@ -29,12 +31,7 @@ api_t::param_type api_t::sign() const
 
 	param_stream << separator << "secret_key=" << secret_key;
 
-	std::string sign = md5(param_stream.str());
-
-	param_type ret(param_);
-
-	ret["api_key"] = api_key;
-	ret["sign"] = sign;
+	ret["sign"] = md5(param_stream.str());
 
 	return ret;
 }
