@@ -11,12 +11,16 @@
 
 #include "imgui.h"
 
+#include "../dump.h"
 #include "../renderer.h"
 
 ticker_mod_t::ticker_mod_t() :
 	capacity_(0), interval_(0),
 	low_(0.0f), high_(0.0f),
-	interval_low_(0.0f), interval_high_(0.0f), interval_last_(0.0f)
+	interval_low_(0.0f), interval_high_(0.0f),
+	long_signal_(0), short_signal_(0),
+	long_cny_(0.0f), long_btc_(0.0f), short_cny_(0.0f), short_btc_(0.0f),
+	net_(0.0f)
 {
 	conn_render = sig_render.connect(boost::bind(&ticker_mod_t::on_render, this));
 }
@@ -47,7 +51,7 @@ void ticker_mod_t::analyze(float price)
 		data_.clear();
 		size = 0;
 
-		interval_low_ = interval_high_ = interval_last_ = 0.0f;
+		interval_low_ = interval_high_ = 0.0f;
 		interval_break_.clear();
 	}
 
@@ -71,15 +75,70 @@ void ticker_mod_t::analyze(float price)
 		interval_low_ = *std::min_element(begin, end);
 		interval_high_ = *std::max_element(begin, end);
 
+		bool check_signal = false;
+
 		if(price < interval_low_)
 		{
-			interval_low_ = interval_last_ = price;
+			interval_low_ = price;
 			interval_break_.push_back(1 - size);
+
+			long_signal_ = (long_signal_ > 0)? -1 : long_signal_ - 1;
+			short_signal_ = (short_signal_ > 0)? -1 : short_signal_ - 1;
+
+			check_signal = true;
 		}
 		else if(price > interval_high_)
 		{
-			interval_high_ = interval_last_ = price;
+			interval_high_ = price;
 			interval_break_.push_back(size - 1);
+
+			long_signal_ = (long_signal_ < 0)? 1 : long_signal_ + 1;
+			short_signal_ = (short_signal_ < 0)? 1 : short_signal_ + 1;
+
+			check_signal = true;
+		}
+
+		if(check_signal)
+		{
+			if(long_signal_ <= -1 || long_signal_ >= 9)
+			{
+				long_signal_ = 0;
+
+				if(long_btc_ > 0.0)
+				{
+					long_cny_ += long_btc_ * price;
+					long_btc_ = 0.0f;
+				}
+			}
+			else if(long_signal_ >= 3)
+			{
+				if(long_btc_ < 3.0f)
+				{
+					long_cny_ -= price;
+					long_btc_ += 1.0f;
+				}
+			}
+
+			if(short_signal_ >= 1 || short_signal_ <= -9)
+			{
+				short_signal_ = 0;
+
+				if(short_cny_ > 0.0)
+				{
+					short_btc_ += short_cny_ / price;
+					short_cny_ = 0.0f;
+				}
+			}
+			else if(short_signal_ <= -3)
+			{
+				if(short_btc_ >= -2.0f)
+				{
+					short_btc_ -= 1.0f;
+					short_cny_ += price;
+				}
+			}
+
+			net_ = long_cny_ + short_cny_ + (long_btc_ + short_btc_) * price;
 		}
 	}
 }
@@ -248,4 +307,20 @@ void ticker_mod_t::on_render()
 	ImGui::Separator();
 
 	ImGui::Text("selected:"); ImGui::SameLine(80); ImGui::Text("%f", selected_price);
+
+	ImGui::Separator();
+
+	ImGui::Text("l_signal:"); ImGui::SameLine(80); ImGui::Text("%d", long_signal_);
+	ImGui::Text("l_cny:"); ImGui::SameLine(80); ImGui::Text("%f", long_cny_);
+	ImGui::Text("l_btc:"); ImGui::SameLine(80); ImGui::Text("%f", long_btc_);
+
+	ImGui::Separator();
+
+	ImGui::Text("s_signal:"); ImGui::SameLine(80); ImGui::Text("%d", short_signal_);
+	ImGui::Text("s_cny:"); ImGui::SameLine(80); ImGui::Text("%f", short_cny_);
+	ImGui::Text("s_btc:"); ImGui::SameLine(80); ImGui::Text("%f", short_btc_);
+
+	ImGui::Separator();
+
+	ImGui::Text("net:"); ImGui::SameLine(80); ImGui::Text("%f", net_);
 }
