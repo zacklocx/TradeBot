@@ -20,7 +20,7 @@ ticker_mod_t::ticker_mod_t() :
 	capacity_(0), interval_(0),
 	low_(0.0f), high_(0.0f),
 	interval_low_(0.0f), interval_high_(0.0f),
-	long_signal_(0), long_target(8),
+	long_signal_(0), long_target_(8),
 	short_signal_(0), short_target_(8),
 	long_cny_(0.0f), long_btc_(0.0f), short_cny_(0.0f), short_btc_(0.0f),
 	net_profit_(0.0f)
