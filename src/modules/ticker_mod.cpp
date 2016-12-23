@@ -110,43 +110,61 @@ void ticker_mod_t::analyze(float price)
 			if(long_signal_ <= -1 || long_signal_ >= long_target_)
 			{
 				long_signal_ = 0;
-
-				if(long_btc_ > 0.0)
-				{
-					long_cny_ += long_btc_ * price;
-					long_btc_ = 0.0f;
-				}
+				long_sell(price);
 			}
 			else if(long_signal_ >= trigger_target_)
 			{
-				if(long_btc_ + unit_btc_ <= max_btc_)
-				{
-					long_cny_ -= unit_btc_ * price;
-					long_btc_ += unit_btc_;
-				}
+				long_buy(price);
 			}
 
 			if(short_signal_ >= 1 || short_signal_ <= -short_target_)
 			{
 				short_signal_ = 0;
-
-				if(short_cny_ > 0.0)
-				{
-					short_btc_ += short_cny_ / (unit_btc_ * price);
-					short_cny_ = 0.0f;
-				}
+				short_buy(price);
 			}
 			else if(short_signal_ <= -trigger_target_)
 			{
-				if(short_cny_ <= (max_btc_ - unit_btc_) * price)
-				{
-					short_btc_ -= unit_btc_;
-					short_cny_ += unit_btc_ * price;
-				}
+				short_sell(price);
 			}
 
 			net_profit_ = long_cny_ + short_cny_ + (long_btc_ + short_btc_) * unit_btc_ * price;
 		}
+	}
+}
+
+void ticker_mod_t::long_buy(float price)
+{
+	if(long_btc_ + unit_btc_ <= max_btc_)
+	{
+		long_cny_ -= unit_btc_ * price;
+		long_btc_ += unit_btc_;
+	}
+}
+
+void ticker_mod_t::long_sell(float price)
+{
+	if(long_btc_ > 0.0)
+	{
+		long_cny_ += long_btc_ * price;
+		long_btc_ = 0.0f;
+	}
+}
+
+void ticker_mod_t::short_buy(float price)
+{
+	if(short_cny_ > 0.0)
+	{
+		short_btc_ += short_cny_ / (unit_btc_ * price);
+		short_cny_ = 0.0f;
+	}
+}
+
+void ticker_mod_t::short_sell(float price)
+{
+	if(short_cny_ <= (max_btc_ - unit_btc_) * price)
+	{
+		short_btc_ -= unit_btc_;
+		short_cny_ += unit_btc_ * price;
 	}
 }
 

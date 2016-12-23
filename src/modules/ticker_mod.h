@@ -41,6 +41,12 @@ private:
 
 	boost::signals2::connection conn_render;
 
+	void long_buy(float price);
+	void long_sell(float price);
+
+	void short_buy(float price);
+	void short_sell(float price);
+
 	void on_render();
 };
 
