@@ -13,10 +13,14 @@
 
 std::string now()
 {
+	std::ostringstream ret;
+
 	auto now = std::chrono::system_clock::now();
 	auto time = std::chrono::system_clock::to_time_t(now);
 
-	return std::put_time(std::localtime(&time), "%F %T");
+	ret << std::put_time(std::localtime(&time), "%F %T");
+
+	return ret.str();
 }
 
 uint64_t timestamp_s()
