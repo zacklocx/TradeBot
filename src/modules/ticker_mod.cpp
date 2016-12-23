@@ -3,7 +3,6 @@
 
 #include <cmath>
 
-#include <numeric>
 #include <algorithm>
 
 #include <boost/bind.hpp>
@@ -17,14 +16,14 @@
 #include "../renderer.h"
 
 ticker_mod_t::ticker_mod_t() :
-	start_time_(now()), current_time_(now()),
+	start_(timestamp_s()), now_(start_),
 	capacity_(0), interval_(0),
 	low_(0.0f), high_(0.0f),
 	interval_low_(0.0f), interval_high_(0.0f),
-	long_signal_(0), short_signal_(0),
-	long_target_(6), short_target_(6),
+	long_signal_(0), long_target(8),
+	short_signal_(0), short_target_(8),
 	long_cny_(0.0f), long_btc_(0.0f), short_cny_(0.0f), short_btc_(0.0f),
-	net_(0.0f)
+	net_profit_(0.0f)
 {
 	conn_render = sig_render.connect(boost::bind(&ticker_mod_t::on_render, this));
 }
@@ -42,7 +41,7 @@ void ticker_mod_t::init(int capacity, int interval)
 
 void ticker_mod_t::analyze(float price)
 {
-	current_time_ = now();
+	now_ = timestamp_s();
 
 	if(!(interval_ > 0 && capacity_ >= interval_))
 	{
@@ -83,9 +82,6 @@ void ticker_mod_t::analyze(float price)
 
 		bool check_signal = false;
 
-		size_t long_size = long_interval_.size();
-		size_t short_size = short_interval_.size();
-
 		if(price < interval_low_)
 		{
 			interval_low_ = price;
@@ -93,32 +89,6 @@ void ticker_mod_t::analyze(float price)
 
 			long_signal_ = (long_signal_ > 0)? -1 : long_signal_ - 1;
 			short_signal_ = (short_signal_ > 0)? -1 : short_signal_ - 1;
-
-			if(long_size > 0)
-			{
-				if(long_interval_.back() < 6)
-				{
-					long_interval_.pop_back();
-					--long_size;
-				}
-
-				if(long_size >= 5)
-				{
-					long_target_ = std::accumulate(long_interval_.begin(), long_interval_.end(), 0) / 5;
-
-					long_interval_.pop_front();
-					long_interval_.push_back(0);
-				}
-			}
-
-			if(short_size > 0)
-			{
-				++short_interval_.back();
-			}
-			else
-			{
-				short_interval_.push_back(1);
-			}
 
 			check_signal = true;
 		}
@@ -129,32 +99,6 @@ void ticker_mod_t::analyze(float price)
 
 			long_signal_ = (long_signal_ < 0)? 1 : long_signal_ + 1;
 			short_signal_ = (short_signal_ < 0)? 1 : short_signal_ + 1;
-
-			if(short_size > 0)
-			{
-				if(short_interval_.back() < 6)
-				{
-					short_interval_.pop_back();
-					--short_size;
-				}
-
-				if(short_size >= 5)
-				{
-					short_target_ = std::accumulate(short_interval_.begin(), short_interval_.end(), 0) / 5;
-
-					short_interval_.pop_front();
-					short_interval_.push_back(0);
-				}
-			}
-
-			if(long_size > 0)
-			{
-				++long_interval_.back();
-			}
-			else
-			{
-				long_interval_.push_back(1);
-			}
 
 			check_signal = true;
 		}
@@ -199,7 +143,7 @@ void ticker_mod_t::analyze(float price)
 				}
 			}
 
-			net_ = long_cny_ + short_cny_ + (long_btc_ + short_btc_) * price;
+			net_profit_ = long_cny_ + short_cny_ + (long_btc_ + short_btc_) * price;
 		}
 	}
 }
@@ -356,8 +300,8 @@ void ticker_mod_t::on_render()
 
 	glPopMatrix();
 
-	ImGui::Text("start:"); ImGui::SameLine(80); ImGui::Text("%s", start_time_.c_str());
-	ImGui::Text("current:"); ImGui::SameLine(80); ImGui::Text("%s", current_time_.c_str());
+	ImGui::Text("start:"); ImGui::SameLine(80); ImGui::Text("%s", what_time(start_).c_str());
+	ImGui::Text("now:"); ImGui::SameLine(80); ImGui::Text("%s", now().c_str());
 
 	ImGui::Separator();
 
@@ -390,5 +334,6 @@ void ticker_mod_t::on_render()
 
 	ImGui::Separator();
 
-	ImGui::Text("net:"); ImGui::SameLine(80); ImGui::Text("%f", net_);
+	ImGui::Text("profit:"); ImGui::SameLine(80); ImGui::Text("%f", net_profit_);
+	ImGui::Text("profit/min:"); ImGui::SameLine(80); ImGui::Text("%f", 60.0f * net_profit_ / (now_ - start_));
 }

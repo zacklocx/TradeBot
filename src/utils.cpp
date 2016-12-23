@@ -11,6 +11,18 @@
 
 #include <openssl/md5.h>
 
+uint64_t timestamp_s()
+{
+	auto ts = std::chrono::system_clock::now().time_since_epoch();
+	return std::chrono::duration_cast<std::chrono::seconds>(ts).count();
+}
+
+uint64_t timestamp_ms()
+{
+	auto ts = std::chrono::system_clock::now().time_since_epoch();
+	return std::chrono::duration_cast<std::chrono::milliseconds>(ts).count();
+}
+
 std::string now()
 {
 	std::ostringstream ret;
@@ -23,16 +35,16 @@ std::string now()
 	return ret.str();
 }
 
-uint64_t timestamp_s()
+std::string what_time(uint64_t ts)
 {
-	auto ts = std::chrono::system_clock::now().time_since_epoch();
-	return std::chrono::duration_cast<std::chrono::seconds>(ts).count();
-}
+	std::ostringstream ret;
 
-uint64_t timestamp_ms()
-{
-	auto ts = std::chrono::system_clock::now().time_since_epoch();
-	return std::chrono::duration_cast<std::chrono::milliseconds>(ts).count();
+	auto epoch = std::chrono::time_point<std::chrono::system_clock>();
+	auto time = std::chrono::system_clock::to_time_t(epoch + std::chrono::seconds(ts));
+
+	ret << std::put_time(std::localtime(&time), "%F %T");
+
+	return ret.str();
 }
 
 std::string md5(const std::string& s)
