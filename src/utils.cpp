@@ -6,9 +6,18 @@
 #include <chrono>
 #include <vector>
 #include <sstream>
+#include <iomanip>
 #include <iostream>
 
 #include <openssl/md5.h>
+
+std::string now()
+{
+	auto now = std::chrono::system_clock::now();
+	auto time = std::chrono::system_clock::to_time_t(now);
+
+	return std::put_time(std::localtime(&time), "%F %T");
+}
 
 uint64_t timestamp_s()
 {

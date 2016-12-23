@@ -8,6 +8,8 @@
 
 #include <json/json.h>
 
+std::string now();
+
 uint64_t timestamp_s();
 uint64_t timestamp_ms();
 
