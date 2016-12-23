@@ -300,40 +300,42 @@ void ticker_mod_t::on_render()
 
 	glPopMatrix();
 
-	ImGui::Text("start:"); ImGui::SameLine(80); ImGui::Text("%s", what_time(start_).c_str());
-	ImGui::Text("now:"); ImGui::SameLine(80); ImGui::Text("%s", now().c_str());
+	int pos = 100;
+
+	ImGui::Text("start"); ImGui::SameLine(pos); ImGui::Text("%s", what_time(start_).c_str());
+	ImGui::Text("now"); ImGui::SameLine(pos); ImGui::Text("%s", now().c_str());
 
 	ImGui::Separator();
 
-	ImGui::Text("low:"); ImGui::SameLine(80); ImGui::Text("%f", low_);
-	ImGui::Text("high:"); ImGui::SameLine(80); ImGui::Text("%f", high_);
-	ImGui::Text("last:"); ImGui::SameLine(80); ImGui::Text("%f", last_price);
+	ImGui::Text("low"); ImGui::SameLine(pos); ImGui::Text("%f", low_);
+	ImGui::Text("high"); ImGui::SameLine(pos); ImGui::Text("%f", high_);
+	ImGui::Text("last"); ImGui::SameLine(pos); ImGui::Text("%f", last_price);
 
 	ImGui::Separator();
 
-	ImGui::Text("i_low:"); ImGui::SameLine(80); ImGui::Text("%f", interval_low_);
-	ImGui::Text("i_high:"); ImGui::SameLine(80); ImGui::Text("%f", interval_high_);
+	ImGui::Text("i_low"); ImGui::SameLine(pos); ImGui::Text("%f", interval_low_);
+	ImGui::Text("i_high"); ImGui::SameLine(pos); ImGui::Text("%f", interval_high_);
 
 	ImGui::Separator();
 
-	ImGui::Text("selected:"); ImGui::SameLine(80); ImGui::Text("%f", selected_price);
+	ImGui::Text("selected"); ImGui::SameLine(pos); ImGui::Text("%f", selected_price);
 
 	ImGui::Separator();
 
-	ImGui::Text("l_signal:"); ImGui::SameLine(80); ImGui::Text("%d", long_signal_);
-	ImGui::Text("l_target:"); ImGui::SameLine(80); ImGui::Text("%d", long_target_);
-	ImGui::Text("l_cny:"); ImGui::SameLine(80); ImGui::Text("%f", long_cny_);
-	ImGui::Text("l_btc:"); ImGui::SameLine(80); ImGui::Text("%f", long_btc_);
+	ImGui::Text("l_signal"); ImGui::SameLine(pos); ImGui::Text("%d", long_signal_);
+	ImGui::Text("l_target"); ImGui::SameLine(pos); ImGui::Text("%d", long_target_);
+	ImGui::Text("l_cny"); ImGui::SameLine(pos); ImGui::Text("%f", long_cny_);
+	ImGui::Text("l_btc"); ImGui::SameLine(pos); ImGui::Text("%f", long_btc_);
 
 	ImGui::Separator();
 
-	ImGui::Text("s_signal:"); ImGui::SameLine(80); ImGui::Text("%d", short_signal_);
-	ImGui::Text("s_target:"); ImGui::SameLine(80); ImGui::Text("%d", -short_target_);
-	ImGui::Text("s_cny:"); ImGui::SameLine(80); ImGui::Text("%f", short_cny_);
-	ImGui::Text("s_btc:"); ImGui::SameLine(80); ImGui::Text("%f", short_btc_);
+	ImGui::Text("s_signal"); ImGui::SameLine(pos); ImGui::Text("%d", short_signal_);
+	ImGui::Text("s_target"); ImGui::SameLine(pos); ImGui::Text("%d", -short_target_);
+	ImGui::Text("s_cny"); ImGui::SameLine(pos); ImGui::Text("%f", short_cny_);
+	ImGui::Text("s_btc"); ImGui::SameLine(pos); ImGui::Text("%f", short_btc_);
 
 	ImGui::Separator();
 
-	ImGui::Text("profit:"); ImGui::SameLine(80); ImGui::Text("%f", net_profit_);
-	ImGui::Text("profit/min:"); ImGui::SameLine(80); ImGui::Text("%f", 60.0f * net_profit_ / (now_ - start_));
+	ImGui::Text("profit"); ImGui::SameLine(pos); ImGui::Text("%f", net_profit_);
+	ImGui::Text("profit/min"); ImGui::SameLine(pos); ImGui::Text("%f", 60.0f * net_profit_ / (now_ - start_));
 }
