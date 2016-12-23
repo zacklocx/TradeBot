@@ -20,8 +20,10 @@ ticker_mod_t::ticker_mod_t() :
 	capacity_(0), interval_(0),
 	low_(0.0f), high_(0.0f),
 	interval_low_(0.0f), interval_high_(0.0f),
+	trigger_target_(3),
 	long_signal_(0), long_target_(8),
 	short_signal_(0), short_target_(8),
+	unit_btc_(1.0f), max_btc_(3.0f),
 	long_cny_(0.0f), long_btc_(0.0f), short_cny_(0.0f), short_btc_(0.0f),
 	net_profit_(0.0f)
 {
@@ -115,12 +117,12 @@ void ticker_mod_t::analyze(float price)
 					long_btc_ = 0.0f;
 				}
 			}
-			else if(long_signal_ >= 3)
+			else if(long_signal_ >= trigger_target_)
 			{
-				if(long_btc_ < 3.0f)
+				if(long_btc_ + unit_btc_ <= max_btc_)
 				{
-					long_cny_ -= price;
-					long_btc_ += 1.0f;
+					long_cny_ -= unit_btc_ * price;
+					long_btc_ += unit_btc_;
 				}
 			}
 
@@ -130,20 +132,20 @@ void ticker_mod_t::analyze(float price)
 
 				if(short_cny_ > 0.0)
 				{
-					short_btc_ += short_cny_ / price;
+					short_btc_ += short_cny_ / (unit_btc_ * price);
 					short_cny_ = 0.0f;
 				}
 			}
-			else if(short_signal_ <= -3)
+			else if(short_signal_ <= -trigger_target_)
 			{
-				if(short_btc_ >= -2.0f)
+				if(short_cny_ <= (max_btc_ - unit_btc_) * price)
 				{
-					short_btc_ -= 1.0f;
-					short_cny_ += price;
+					short_btc_ -= unit_btc_;
+					short_cny_ += unit_btc_ * price;
 				}
 			}
 
-			net_profit_ = long_cny_ + short_cny_ + (long_btc_ + short_btc_) * price;
+			net_profit_ = long_cny_ + short_cny_ + (long_btc_ + short_btc_) * unit_btc_ * price;
 		}
 	}
 }
@@ -319,6 +321,11 @@ void ticker_mod_t::on_render()
 	ImGui::Separator();
 
 	ImGui::Text("selected"); ImGui::SameLine(pos); ImGui::Text("%f", selected_price);
+
+	ImGui::Separator();
+
+	ImGui::Text("unit_btc"); ImGui::SameLine(pos); ImGui::Text("%f", unit_btc_);
+	ImGui::Text("max_btc"); ImGui::SameLine(pos); ImGui::Text("%f", max_btc_);
 
 	ImGui::Separator();
 

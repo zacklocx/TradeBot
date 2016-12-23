@@ -28,8 +28,11 @@ private:
 	float interval_low_, interval_high_;
 	std::vector<int> interval_break_;
 
+	int trigger_target_;
 	int long_signal_, long_target_;
 	int short_signal_, short_target_;
+
+	float unit_btc_, max_btc_;
 
 	float long_cny_, long_btc_;
 	float short_cny_, short_btc_;
