@@ -32,12 +32,15 @@ private:
 	int long_signal_, long_target_;
 	int short_signal_, short_target_;
 
+	int delay_, delay_count_, delay_type_;
+	float delay_value_;
+
 	float unit_btc_, max_btc_;
 
 	float long_cny_, long_btc_;
 	float short_cny_, short_btc_;
 
-	float net_profit_;
+	float profit_;
 
 	boost::signals2::connection conn_render;
 
@@ -46,6 +49,8 @@ private:
 
 	void short_buy(float price);
 	void short_sell(float price);
+
+	void delay_trade(float price);
 
 	void create_buy_api(float cny);
 	void create_sell_api(float btc);

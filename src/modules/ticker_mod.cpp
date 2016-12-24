@@ -25,9 +25,10 @@ ticker_mod_t::ticker_mod_t() :
 	trigger_target_(3),
 	long_signal_(0), long_target_(8),
 	short_signal_(0), short_target_(8),
-	unit_btc_(0.01f), max_btc_(0.03f),
+	delay_(5), delay_count_(0), delay_type_(0), delay_value_(0.0f),
+	unit_btc_(1.0f), max_btc_(3.0f),
 	long_cny_(0.0f), long_btc_(0.0f), short_cny_(0.0f), short_btc_(0.0f),
-	net_profit_(0.0f)
+	profit_(0.0f)
 {
 	conn_render = sig_render.connect(boost::bind(&ticker_mod_t::on_render, this));
 }
@@ -76,6 +77,14 @@ void ticker_mod_t::analyze(float price)
 		high_ = price;
 	}
 
+	if(delay_type_ != 0)
+	{
+		if(++delay_count_ >= delay_)
+		{
+			delay_trade(price);
+		}
+	}
+
 	if(size > interval_)
 	{
 		auto end = data_.end() - 1;
@@ -107,7 +116,7 @@ void ticker_mod_t::analyze(float price)
 			check_signal = true;
 		}
 
-		if(check_signal)
+		if(check_signal && 0 == delay_type_)
 		{
 			if(long_signal_ <= -1 || long_signal_ >= long_target_)
 			{
@@ -129,7 +138,7 @@ void ticker_mod_t::analyze(float price)
 				short_sell(price);
 			}
 
-			net_profit_ = long_cny_ + short_cny_ + (long_btc_ + short_btc_) * price;
+			profit_ = long_cny_ + short_cny_ + (long_btc_ + short_btc_) * price;
 		}
 	}
 }
@@ -140,10 +149,17 @@ void ticker_mod_t::long_buy(float price)
 	{
 		float cny = unit_btc_ * price;
 
-		long_cny_ -= cny;
-		long_btc_ += unit_btc_;
-
-		create_buy_api(cny);
+		if(0 == delay_)
+		{
+			long_cny_ -= cny;
+			long_btc_ += unit_btc_;
+		}
+		else if(0 == delay_type_)
+		{
+			delay_count_ = 0;
+			delay_type_ = 1;
+			delay_value_ = cny;
+		}
 	}
 }
 
@@ -153,10 +169,17 @@ void ticker_mod_t::long_sell(float price)
 	{
 		float btc = long_btc_;
 
-		long_cny_ += btc * price;
-		long_btc_ -= btc;
-
-		create_sell_api(btc);
+		if(0 == delay_)
+		{
+			long_cny_ += btc * price;
+			long_btc_ -= btc;
+		}
+		else if(0 == delay_type_)
+		{
+			delay_count_ = 0;
+			delay_type_ = -1;
+			delay_value_ = btc;
+		}
 	}
 }
 
@@ -166,10 +189,17 @@ void ticker_mod_t::short_buy(float price)
 	{
 		float cny = short_cny_;
 
-		short_cny_ -= cny;
-		short_btc_ += cny / price;
-
-		create_buy_api(cny);
+		if(0 == delay_)
+		{
+			short_cny_ -= cny;
+			short_btc_ += cny / price;
+		}
+		else if(0 == delay_type_)
+		{
+			delay_count_ = 0;
+			delay_type_ = 2;
+			delay_value_ = cny;
+		}
 	}
 }
 
@@ -179,11 +209,49 @@ void ticker_mod_t::short_sell(float price)
 	{
 		float btc = unit_btc_;
 
-		short_cny_ += btc * price;
-		short_btc_ -= btc;
-
-		create_sell_api(btc);
+		if(0 == delay_)
+		{
+			short_cny_ += btc * price;
+			short_btc_ -= btc;
+		}
+		else if(0 == delay_type_)
+		{
+			delay_count_ = 0;
+			delay_type_ = -2;
+			delay_value_ = btc;
+		}
 	}
+}
+
+void ticker_mod_t::delay_trade(float price)
+{
+	float cny_change = 0.0f, btc_change = 0.0f;
+
+	if(delay_type_ > 0)
+	{
+		cny_change = -delay_value_;
+		btc_change = delay_value_ / price;
+	}
+	else if(delay_type_ < 0)
+	{
+		cny_change = delay_value_ * price;
+		btc_change = -delay_value_;
+	}
+
+	if(1 == delay_type_ || -1 == delay_type_)
+	{
+		long_cny_ += cny_change;
+		long_btc_ += btc_change;
+	}
+	else if(2 == delay_type_ || -2 == delay_type_)
+	{
+		short_cny_ += cny_change;
+		short_btc_ += btc_change;
+	}
+
+	delay_count_ = 0;
+	delay_type_ = 0;
+	delay_value_ = 0.0f;
 }
 
 void ticker_mod_t::create_buy_api(float cny)
@@ -391,6 +459,6 @@ void ticker_mod_t::on_render()
 
 	ImGui::Separator();
 
-	ImGui::Text("profit"); ImGui::SameLine(pos); ImGui::Text("%f", net_profit_);
-	ImGui::Text("profit/min"); ImGui::SameLine(pos); ImGui::Text("%f", 60.0f * net_profit_ / (now_ - start_));
+	ImGui::Text("profit"); ImGui::SameLine(pos); ImGui::Text("%f", profit_);
+	ImGui::Text("profit/min"); ImGui::SameLine(pos); ImGui::Text("%f", 60.0f * profit_ / (now_ - start_));
 }
