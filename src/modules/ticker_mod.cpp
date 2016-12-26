@@ -18,14 +18,14 @@
 #include "../renderer.h"
 
 ticker_mod_t::ticker_mod_t() :
-	start_(timestamp_s()), now_(start_),
 	capacity_(0), interval_(0),
+	start_(timestamp_s()), now_(start_),
+	delay_(5), delay_count_(0), delay_type_(0), delay_value_(0.0f),
 	low_(0.0f), high_(0.0f),
 	interval_low_(0.0f), interval_high_(0.0f),
 	trigger_target_(3),
 	long_signal_(0), long_target_(8),
 	short_signal_(0), short_target_(8),
-	delay_(5), delay_count_(0), delay_type_(0), delay_value_(0.0f),
 	unit_btc_(1.0f), max_btc_(3.0f),
 	long_cny_(0.0f), long_btc_(0.0f), short_cny_(0.0f), short_btc_(0.0f),
 	profit_(0.0f)
@@ -418,47 +418,79 @@ void ticker_mod_t::on_render()
 
 	glPopMatrix();
 
-	int pos = 100;
+	int pos = 120;
 
-	ImGui::Text("start"); ImGui::SameLine(pos); ImGui::Text("%s", what_time(start_).c_str());
-	ImGui::Text("now"); ImGui::SameLine(pos); ImGui::Text("%s", now().c_str());
+	if(ImGui::TreeNode("time"))
+	{
+		ImGui::Text("start"); ImGui::SameLine(pos); ImGui::Text("%s", what_time(start_).c_str());
+		ImGui::Text("now"); ImGui::SameLine(pos); ImGui::Text("%s", now().c_str());
 
-	ImGui::Separator();
+		ImGui::TreePop();
+	}
 
-	ImGui::Text("low"); ImGui::SameLine(pos); ImGui::Text("%f", low_);
-	ImGui::Text("high"); ImGui::SameLine(pos); ImGui::Text("%f", high_);
-	ImGui::Text("last"); ImGui::SameLine(pos); ImGui::Text("%f", last_price);
+	if(ImGui::TreeNode("delay"))
+	{
+		ImGui::Text("delay"); ImGui::SameLine(pos); ImGui::Text("%d", delay_);
+		ImGui::Text("delay_count"); ImGui::SameLine(pos); ImGui::Text("%d", delay_count_);
+		ImGui::Text("delay_type"); ImGui::SameLine(pos); ImGui::Text("%d", delay_type_);
 
-	ImGui::Separator();
+		ImGui::TreePop();
+	}
 
-	ImGui::Text("i_low"); ImGui::SameLine(pos); ImGui::Text("%f", interval_low_);
-	ImGui::Text("i_high"); ImGui::SameLine(pos); ImGui::Text("%f", interval_high_);
+	if(ImGui::TreeNode("price"))
+	{
+		ImGui::Text("low"); ImGui::SameLine(pos); ImGui::Text("%f", low_);
+		ImGui::Text("high"); ImGui::SameLine(pos); ImGui::Text("%f", high_);
+		ImGui::Text("last"); ImGui::SameLine(pos); ImGui::Text("%f", last_price);
 
-	ImGui::Separator();
+		ImGui::Separator();
 
-	ImGui::Text("selected"); ImGui::SameLine(pos); ImGui::Text("%f", selected_price);
+		ImGui::Text("i_low"); ImGui::SameLine(pos); ImGui::Text("%f", interval_low_);
+		ImGui::Text("i_high"); ImGui::SameLine(pos); ImGui::Text("%f", interval_high_);
 
-	ImGui::Separator();
+		ImGui::Separator();
 
-	ImGui::Text("unit_btc"); ImGui::SameLine(pos); ImGui::Text("%f", unit_btc_);
-	ImGui::Text("max_btc"); ImGui::SameLine(pos); ImGui::Text("%f", max_btc_);
+		ImGui::Text("selected"); ImGui::SameLine(pos); ImGui::Text("%f", selected_price);
 
-	ImGui::Separator();
+		ImGui::TreePop();
+	}
 
-	ImGui::Text("l_signal"); ImGui::SameLine(pos); ImGui::Text("%d", long_signal_);
-	ImGui::Text("l_target"); ImGui::SameLine(pos); ImGui::Text("%d", long_target_);
-	ImGui::Text("l_cny"); ImGui::SameLine(pos); ImGui::Text("%f", long_cny_);
-	ImGui::Text("l_btc"); ImGui::SameLine(pos); ImGui::Text("%f", long_btc_);
+	if(ImGui::TreeNode("signal"))
+	{
+		ImGui::Text("l_signal"); ImGui::SameLine(pos); ImGui::Text("%d", long_signal_);
+		ImGui::Text("l_target"); ImGui::SameLine(pos); ImGui::Text("%d", long_target_);
 
-	ImGui::Separator();
+		ImGui::Separator();
 
-	ImGui::Text("s_signal"); ImGui::SameLine(pos); ImGui::Text("%d", short_signal_);
-	ImGui::Text("s_target"); ImGui::SameLine(pos); ImGui::Text("%d", -short_target_);
-	ImGui::Text("s_cny"); ImGui::SameLine(pos); ImGui::Text("%f", short_cny_);
-	ImGui::Text("s_btc"); ImGui::SameLine(pos); ImGui::Text("%f", short_btc_);
+		ImGui::Text("s_signal"); ImGui::SameLine(pos); ImGui::Text("%d", short_signal_);
+		ImGui::Text("s_target"); ImGui::SameLine(pos); ImGui::Text("%d", -short_target_);
 
-	ImGui::Separator();
+		ImGui::TreePop();
+	}
 
-	ImGui::Text("profit"); ImGui::SameLine(pos); ImGui::Text("%f", profit_);
-	ImGui::Text("profit/min"); ImGui::SameLine(pos); ImGui::Text("%f", 60.0f * profit_ / (now_ - start_));
+	if(ImGui::TreeNode("account"))
+	{
+		ImGui::Text("unit_btc"); ImGui::SameLine(pos); ImGui::Text("%f", unit_btc_);
+		ImGui::Text("max_btc"); ImGui::SameLine(pos); ImGui::Text("%f", max_btc_);
+
+		ImGui::Separator();
+
+		ImGui::Text("l_cny"); ImGui::SameLine(pos); ImGui::Text("%f", long_cny_);
+		ImGui::Text("l_btc"); ImGui::SameLine(pos); ImGui::Text("%f", long_btc_);
+
+		ImGui::Separator();
+
+		ImGui::Text("s_cny"); ImGui::SameLine(pos); ImGui::Text("%f", short_cny_);
+		ImGui::Text("s_btc"); ImGui::SameLine(pos); ImGui::Text("%f", short_btc_);
+
+		ImGui::TreePop();
+	}
+
+	if(ImGui::TreeNode("profit"))
+	{
+		ImGui::Text("profit"); ImGui::SameLine(pos); ImGui::Text("%f", profit_);
+		ImGui::Text("profit/min"); ImGui::SameLine(pos); ImGui::Text("%f", 60.0f * profit_ / (now_ - start_));
+
+		ImGui::TreePop();
+	}
 }

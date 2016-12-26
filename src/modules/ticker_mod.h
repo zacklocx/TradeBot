@@ -18,9 +18,12 @@ public:
 	void analyze(float price);
 
 private:
+	int capacity_, interval_;
+
 	uint64_t start_, now_;
 
-	int capacity_, interval_;
+	int delay_, delay_count_, delay_type_;
+	float delay_value_;
 
 	float low_, high_;
 	std::vector<float> data_;
@@ -31,9 +34,6 @@ private:
 	int trigger_target_;
 	int long_signal_, long_target_;
 	int short_signal_, short_target_;
-
-	int delay_, delay_count_, delay_type_;
-	float delay_value_;
 
 	float unit_btc_, max_btc_;
 
