@@ -59,7 +59,7 @@ int main(int argc, char** argv)
 
 		std::thread event_thread([&] { service.run(); });
 
-		renderer_t::start(1200, 800, 0xA6A6A6);
+		renderer_t::start(1224, 800, 0xA6A6A6);
 
 		event_thread.join();
 	}

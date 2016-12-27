@@ -20,7 +20,7 @@ analyzer_t::~analyzer_t()
 
 void analyzer_t::init_modules()
 {
-	ticker_mod.init(500, 20);
+	ticker_mod.init(512, 64);
 }
 
 void analyzer_t::on_api_handled(bool status, const api_t& api, const Json::Value& json)

@@ -29,9 +29,10 @@ private:
 	std::vector<float> data_;
 
 	float interval_low_, interval_high_;
-	std::vector<int> interval_break_;
+	std::vector<int> interval_break_, interval_trade_;
 
-	int trigger_target_;
+	int start_target_, stop_target_;
+
 	int long_signal_, long_target_;
 	int short_signal_, short_target_;
 

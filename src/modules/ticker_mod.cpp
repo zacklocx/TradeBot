@@ -23,10 +23,10 @@ ticker_mod_t::ticker_mod_t() :
 	delay_(5), delay_count_(0), delay_type_(0), delay_value_(0.0f),
 	low_(0.0f), high_(0.0f),
 	interval_low_(0.0f), interval_high_(0.0f),
-	trigger_target_(3),
-	long_signal_(0), long_target_(8),
-	short_signal_(0), short_target_(8),
-	unit_btc_(1.0f), max_btc_(3.0f),
+	start_target_(2), stop_target_(2),
+	long_signal_(0), long_target_(5),
+	short_signal_(0), short_target_(5),
+	unit_btc_(1.0f), max_btc_(2.0f),
 	long_cny_(0.0f), long_btc_(0.0f), short_cny_(0.0f), short_btc_(0.0f),
 	profit_(0.0f)
 {
@@ -62,7 +62,9 @@ void ticker_mod_t::analyze(float price)
 		size = 0;
 
 		interval_low_ = interval_high_ = 0.0f;
+
 		interval_break_.clear();
+		interval_trade_.clear();
 	}
 
 	data_.push_back(price);
@@ -98,7 +100,7 @@ void ticker_mod_t::analyze(float price)
 		if(price < interval_low_)
 		{
 			interval_low_ = price;
-			interval_break_.push_back(1 - size);
+			interval_break_.push_back(-size);
 
 			long_signal_ = (long_signal_ > 0)? -1 : long_signal_ - 1;
 			short_signal_ = (short_signal_ > 0)? -1 : short_signal_ - 1;
@@ -108,7 +110,7 @@ void ticker_mod_t::analyze(float price)
 		else if(price > interval_high_)
 		{
 			interval_high_ = price;
-			interval_break_.push_back(size - 1);
+			interval_break_.push_back(size);
 
 			long_signal_ = (long_signal_ < 0)? 1 : long_signal_ + 1;
 			short_signal_ = (short_signal_ < 0)? 1 : short_signal_ + 1;
@@ -118,22 +120,22 @@ void ticker_mod_t::analyze(float price)
 
 		if(check_signal && 0 == delay_type_)
 		{
-			if(long_signal_ <= -1 || long_signal_ >= long_target_)
+			if(long_signal_ <= -stop_target_ || long_signal_ >= long_target_)
 			{
 				long_signal_ = 0;
 				long_sell(price);
 			}
-			else if(long_signal_ >= trigger_target_)
+			else if(long_signal_ >= start_target_)
 			{
 				long_buy(price);
 			}
 
-			if(short_signal_ >= 1 || short_signal_ <= -short_target_)
+			if(short_signal_ >= stop_target_ || short_signal_ <= -short_target_)
 			{
 				short_signal_ = 0;
 				short_buy(price);
 			}
-			else if(short_signal_ <= -trigger_target_)
+			else if(short_signal_ <= -start_target_)
 			{
 				short_sell(price);
 			}
@@ -153,6 +155,8 @@ void ticker_mod_t::long_buy(float price)
 		{
 			long_cny_ -= cny;
 			long_btc_ += unit_btc_;
+
+			interval_trade_.push_back(data_.size());
 		}
 		else if(0 == delay_type_)
 		{
@@ -173,6 +177,8 @@ void ticker_mod_t::long_sell(float price)
 		{
 			long_cny_ += btc * price;
 			long_btc_ -= btc;
+
+			interval_trade_.push_back(-data_.size());
 		}
 		else if(0 == delay_type_)
 		{
@@ -193,6 +199,8 @@ void ticker_mod_t::short_buy(float price)
 		{
 			short_cny_ -= cny;
 			short_btc_ += cny / price;
+
+			interval_trade_.push_back(data_.size());
 		}
 		else if(0 == delay_type_)
 		{
@@ -213,6 +221,8 @@ void ticker_mod_t::short_sell(float price)
 		{
 			short_cny_ += btc * price;
 			short_btc_ -= btc;
+
+			interval_trade_.push_back(-data_.size());
 		}
 		else if(0 == delay_type_)
 		{
@@ -227,15 +237,21 @@ void ticker_mod_t::delay_trade(float price)
 {
 	float cny_change = 0.0f, btc_change = 0.0f;
 
+	size_t size = data_.size();
+
 	if(delay_type_ > 0)
 	{
 		cny_change = -delay_value_;
 		btc_change = delay_value_ / price;
+
+		interval_trade_.push_back(size);
 	}
 	else if(delay_type_ < 0)
 	{
 		cny_change = delay_value_ * price;
 		btc_change = -delay_value_;
+
+		interval_trade_.push_back(-size);
 	}
 
 	if(1 == delay_type_ || -1 == delay_type_)
@@ -349,11 +365,20 @@ void ticker_mod_t::on_render()
 		glVertex2f(content_width + (((n + i) % _1_unit_price)? 11.0f : 21.0f), y);
 	}
 
-	glColor3ub(255, 0, 0);
-
 	for(size_t i = 0; i < size; ++i)
 	{
 		float x = i * scale_x + 1.0f;
+
+		glColor3ub(255, 0, 0);
+
+		for(auto it : interval_trade_)
+		{
+			if(it == (i + 1) || it == -(i + 1))
+			{
+				glColor3ub((it > 0)? 0 : 255, 255, 0);
+				break;
+			}
+		}
 
 		glVertex2f(x, 0.0f);
 		glVertex2f(x, (data_[i] - low_ + unit_price) * scale_y);
@@ -384,7 +409,7 @@ void ticker_mod_t::on_render()
 				it = -it;
 			}
 
-			glVertex2f(it * scale_x, (data_[it] - low_ + unit_price) * scale_y);
+			glVertex2f((it - 1) * scale_x, (data_[it - 1] - low_ + unit_price) * scale_y);
 		}
 
 		glEnd();
@@ -393,18 +418,15 @@ void ticker_mod_t::on_render()
 
 		for(auto it : interval_break_)
 		{
+			glColor3ub((it > 0)? 0 : 255, 255, 0);
+
 			if(it < 0)
 			{
 				it = -it;
-				glColor3ub(255, 255, 0);
-			}
-			else
-			{
-				glColor3ub(0, 255, 0);
 			}
 
-			float x = it * scale_x + 1.0f;
-			float y = (data_[it] - low_ + unit_price) * scale_y;
+			float x = (it - 1) * scale_x + 1.0f;
+			float y = (data_[it - 1] - low_ + unit_price) * scale_y;
 
 			for(int i = -2; i <= 2; ++i)
 			{
