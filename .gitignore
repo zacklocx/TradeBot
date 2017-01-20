@@ -14,3 +14,6 @@ build/
 Testing/
 CMakeFiles/
 _CPack_Packages/
+
+.sync/
+Icon
