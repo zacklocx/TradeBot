@@ -40,6 +40,7 @@ include_directories(${SOCI_INCLUDE_DIRS})
 include_directories(${FREEGLUT_INCLUDE_DIRS})
 
 include_directories(${CMAKE_SOURCE_DIR}/third_party/imgui)
+include_directories(${CMAKE_SOURCE_DIR}/third_party/iguana)
 include_directories(${CMAKE_SOURCE_DIR}/third_party/avhttp)
 
 file(GLOB IMGUI_CPP ${CMAKE_SOURCE_DIR}/third_party/imgui/*.cpp)
