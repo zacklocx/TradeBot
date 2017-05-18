@@ -4,17 +4,31 @@
 #  FREEGLUT_INCLUDE_DIRS - The freeglut include directories
 #  FREEGLUT_LIBRARIES - The libraries needed to use freeglut
 
-find_path(FREEGLUT_INCLUDE_DIR GL/freeglut.h
-          HINTS /usr/X11R6/include)
+if(APPLE)
+	find_path(FREEGLUT_INCLUDE_DIR GL/freeglut.h
+	          HINTS /usr/X11R6/include)
 
-find_library(GL_LIBRARY NAMES gl libgl
-             HINTS /usr/X11R6/lib)
+	find_library(GL_LIBRARY NAMES gl libgl
+	             HINTS /usr/X11R6/lib)
 
-find_library(GLU_LIBRARY NAMES glu libglu
-             HINTS /usr/X11R6/lib)
+	find_library(GLU_LIBRARY NAMES glu libglu
+	             HINTS /usr/X11R6/lib)
 
-find_library(FREEGLUT_LIBRARY NAMES glut libglut
-             HINTS /usr/X11R6/lib NO_DEFAULT_PATH)
+	find_library(FREEGLUT_LIBRARY NAMES glut libglut
+	             HINTS /usr/X11R6/lib NO_DEFAULT_PATH)
+else
+	find_path(FREEGLUT_INCLUDE_DIR GL/freeglut.h
+	          HINTS /usr/include)
+
+	find_library(GL_LIBRARY NAMES GL libGL
+	             HINTS /usr/lib64)
+
+	find_library(GLU_LIBRARY NAMES GLU libGLU
+	             HINTS /usr/lib64)
+
+	find_library(FREEGLUT_LIBRARY NAMES glut libglut
+	             HINTS /usr/lib64)
+end
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set FREEGLUT_FOUND to TRUE
