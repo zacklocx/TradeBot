@@ -36,6 +36,7 @@ include_directories(${Boost_INCLUDE_DIR})
 include_directories($ENV{OPENSSL_ROOT_DIR}/include)
 link_directories($ENV{OPENSSL_ROOT_DIR}/lib)
 
+include_directories(${JSONCPP_INCLUDE_DIRS})
 include_directories(${SOCI_INCLUDE_DIRS})
 include_directories(${FREEGLUT_INCLUDE_DIRS})
 
