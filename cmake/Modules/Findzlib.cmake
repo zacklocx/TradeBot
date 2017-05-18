@@ -12,7 +12,7 @@ set(ZLIB_DEFINITIONS ${PC_ZLIB_CFLAGS_OTHER})
 find_path(ZLIB_INCLUDE_DIR zlib.h
           HINTS ${PC_ZLIB_INCLUDEDIR} ${PC_ZLIB_INCLUDE_DIRS})
 
-find_library(ZLIB_LIBRARY NAMES zlib libz
+find_library(ZLIB_LIBRARY NAMES libz z
              HINTS ${PC_ZLIB_LIBDIR} ${PC_ZLIB_LIBRARY_DIRS})
 
 include(FindPackageHandleStandardArgs)
