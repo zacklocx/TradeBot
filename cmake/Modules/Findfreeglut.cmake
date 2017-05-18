@@ -16,7 +16,7 @@ if(APPLE)
 
 	find_library(FREEGLUT_LIBRARY NAMES glut libglut
 	             HINTS /usr/X11R6/lib NO_DEFAULT_PATH)
-else
+else()
 	find_path(FREEGLUT_INCLUDE_DIR GL/freeglut.h
 	          HINTS /usr/include)
 
@@ -28,7 +28,7 @@ else
 
 	find_library(FREEGLUT_LIBRARY NAMES glut libglut
 	             HINTS /usr/lib64)
-end
+endif()
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set FREEGLUT_FOUND to TRUE
