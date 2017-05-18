@@ -5,7 +5,7 @@
 #  JSONCPP_LIBRARIES - The libraries needed to use jsoncpp
 #  JSONCPP_DEFINITIONS - Compiler switches required for using jsoncpp
 
-find_package(PkgConfig)
+find_package(PkgConfig QUIET)
 pkg_check_modules(PC_JSONCPP QUIET jsoncpp)
 set(JSONCPP_DEFINITIONS ${PC_JSONCPP_CFLAGS_OTHER})
 

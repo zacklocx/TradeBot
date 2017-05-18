@@ -5,7 +5,7 @@
 #  SOCI_LIBRARIES - The libraries needed to use soci
 #  SOCI_DEFINITIONS - Compiler switches required for using soci
 
-find_package(PkgConfig)
+find_package(PkgConfig QUIET)
 pkg_check_modules(PC_SOCI QUIET soci)
 set(SOCI_DEFINITIONS ${PC_SOCI_CFLAGS_OTHER})
 
