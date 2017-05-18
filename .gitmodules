@@ -1,3 +1,6 @@
 [submodule "third_party/imgui"]
 	path = third_party/imgui
 	url = https://github.com/ocornut/imgui.git
+[submodule "third_party/avhttp"]
+	path = third_party/avhttp
+	url = https://github.com/avplayer/avhttp.git
