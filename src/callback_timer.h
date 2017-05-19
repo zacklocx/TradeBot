@@ -1,6 +1,6 @@
 
-#ifndef TIMER_INCLUDED
-#define TIMER_INCLUDED
+#ifndef CALLBACK_TIMER_INCLUDED
+#define CALLBACK_TIMER_INCLUDED
 
 #include <cstdint>
 
@@ -12,12 +12,12 @@
 #include <boost/asio.hpp>
 #include <boost/asio/steady_timer.hpp>
 
-class timer_t
+class callback_timer_t
 {
 public:
 	typedef std::function<void()> handler_type;
 
-	timer_t(boost::asio::io_service& service, int period, handler_type handler) :
+	callback_timer_t(boost::asio::io_service& service, int period, handler_type handler) :
 		period_(period), count_(0), running_(false),
 		handler_(std::move(handler)),
 		timer_(std::make_shared<boost::asio::steady_timer>(std::ref(service), std::chrono::milliseconds(period)))
@@ -43,4 +43,4 @@ private:
 	void handle_wait(const boost::system::error_code& ec);
 };
 
-#endif /* TIMER_INCLUDED */
+#endif /* CALLBACK_TIMER_INCLUDED */

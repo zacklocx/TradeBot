@@ -8,12 +8,12 @@
 #include "TradeBotConfig.h"
 
 #include "dump.h"
-#include "timer.h"
 #include "client.h"
 #include "renderer.h"
 #include "analyzer.h"
 #include "executor.h"
 #include "generator.h"
+#include "callback_timer.h"
 
 int main(int argc, char** argv)
 {
@@ -43,7 +43,7 @@ int main(int argc, char** argv)
 
 		int peroid = 100;
 
-		timer_t timer(service, peroid, [&]
+		callback_timer_t timer(service, peroid, [&]
 		{
 			executor_status_t status = executor.execute();
 
