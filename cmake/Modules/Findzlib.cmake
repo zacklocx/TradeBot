@@ -78,6 +78,9 @@ if(NOT ZLIB_LIBRARY)
     find_library(ZLIB_LIBRARY_RELEASE NAMES ${ZLIB_NAMES} ${${search}} PATH_SUFFIXES lib)
     find_library(ZLIB_LIBRARY_DEBUG NAMES ${ZLIB_NAMES_DEBUG} ${${search}} PATH_SUFFIXES lib)
   endforeach()
+
+  include(SelectLibraryConfigurations)
+  select_library_configurations(ZLIB)
 endif()
 
 unset(ZLIB_NAMES)
