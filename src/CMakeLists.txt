@@ -22,6 +22,7 @@ find_package(jsoncpp REQUIRED)
 find_package(sqlite3 REQUIRED)
 find_package(soci REQUIRED)
 find_package(freeglut REQUIRED)
+find_package(Threads REQUIRED)
 
 set(EXTRA_LIBS ${EXTRA_LIBS} ${ZLIB_LIBRARIES})
 set(EXTRA_LIBS ${EXTRA_LIBS} ${Boost_LIBRARIES})
@@ -30,6 +31,7 @@ set(EXTRA_LIBS ${EXTRA_LIBS} ${JSONCPP_LIBRARIES})
 set(EXTRA_LIBS ${EXTRA_LIBS} ${SQLITE3_LIBRARIES})
 set(EXTRA_LIBS ${EXTRA_LIBS} ${SOCI_LIBRARIES})
 set(EXTRA_LIBS ${EXTRA_LIBS} ${FREEGLUT_LIBRARIES})
+set(EXTRA_LIBS ${EXTRA_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 
 include_directories(${Boost_INCLUDE_DIR})
 
